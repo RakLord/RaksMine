@@ -29,19 +29,22 @@ function tryMine() {
   else if (lastDir === 'left') dx = -1; else if (lastDir === 'right') dx = 1;
   const cx = player.x + player.w / 2, cy = player.y + player.h / 2;
   const { tx, ty } = worldToTile(cx, cy);
+  const cost = 3;
+  if (player.stamina < cost) return;
   let mined = false;
   for (let i = 1; i <= player.drill; i++) {
     const id = world.get(tx + dx * i, ty + dy * i);
     if (id <= 0) continue;
     const m = MATERIALS[id];
-    const cost = 3 + m.hard;
-    if (m.hard > player.pickPower || player.stamina < cost) break;
+    if (m.hard > player.pickPower) break;
     world.set(tx + dx * i, ty + dy * i, 0);
-    player.stamina -= cost;
     invAdd(id, 1);
     mined = true;
   }
-  if (mined && dy === 1) player.vy = Math.max(player.vy, 0.5);
+  if (mined) {
+    player.stamina -= cost;
+    if (dy === 1) player.vy = Math.max(player.vy, 0.5);
+  }
 }
 
 function resolveCollisions() {
