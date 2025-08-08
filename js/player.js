@@ -113,7 +113,10 @@ export function sellAll() {
 export const BUILDING_COSTS = {
   forge: { materials: { 5: 50, 3: 50 }, cash: 5000 },
   warehouse: { materials: { [BAR_MAP[5]]: 50, 3: 100 }, cash: 0 },
-  forgeUpgrade: { materials: { [BAR_MAP[5]]: 50 }, cash: 10000 }
+  forgeUpgrade: {
+    materials: { [BAR_MAP[5]]: 3, [BAR_MAP[4]]: 5, [BAR_MAP[6]]: 1 },
+    cash: 10000
+  }
 };
 
 export function contributeBuilding(kind) {
@@ -152,7 +155,7 @@ export function queueSmelt(oreId) {
   const taken = removeFromInventory(oreId, 10);
   if (taken < 10) { if (taken > 0) invAdd(oreId, taken); say('Need 10 ore.'); return; }
   const time = 10 / Math.pow(2, Math.max(player.forgeLevel - 1, 0));
-  player.forgeQueue.push({ id: oreId, time });
+  player.forgeQueue.push({ id: oreId, time, total: time });
   say('Smelting started.');
 }
 

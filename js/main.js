@@ -1,7 +1,7 @@
 import {TILE, MAP_W, MAP_H, MOVE_ACC, GRAV, FRICTION} from './config.js';
 import {MATERIALS, BAR_MAP} from './materials.js';
 import {world, worldToTile, isSolidAt, generateWorld} from './world.js';
-import {canvas, ctx, statsEl, say, closeAllModals, closeModal, isUIOpen, openInventory, openShop, openMarket, marketModal, saveBtn, loadBtn, loadInput, staminaBar, staminaFill, weightBar, weightFill, openModal, ascendModal, ascendBtn, settingsBtn, settingsModal, autosaveRange, autosaveLabel, toastXInput, toastYInput, keybindsTable, hardResetBtn, toastWrap, ascendCostText, openBuilder, openForge, openWarehouse} from './ui.js';
+import {canvas, ctx, statsEl, say, closeAllModals, closeModal, isUIOpen, openInventory, openShop, openMarket, marketModal, saveBtn, loadBtn, loadInput, staminaBar, staminaFill, weightBar, weightFill, openModal, ascendModal, ascendBtn, settingsBtn, settingsModal, autosaveRange, autosaveLabel, toastXInput, toastYInput, keybindsTable, hardResetBtn, toastWrap, ascendCostText, openBuilder, openForge, openWarehouse, renderForge, forgeModal} from './ui.js';
 import {player, buildings, rectsIntersect, totalWeight, invAdd, teleportHome, upgrades, priceFor, buy, sellItem, sellAll, inventoryValue, ASCENSION_BUILDING, ascend, ascensionCost, BUILDING_COSTS, contributeBuilding, queueSmelt, storeInWarehouse, takeFromWarehouse} from './player.js';
 import {setupPages} from './pages.js';
 import {setupAscensionShop} from './ascension.js';
@@ -133,6 +133,24 @@ function updateForge() {
     invAdd(barId, 1);
     player.forgeQueue.shift();
     say('Smelted ' + MATERIALS[barId].name + '.');
+    if (!forgeModal.classList.contains('hidden'))
+      renderForge(player, MATERIALS, BAR_MAP, queueSmelt);
+    return;
+  }
+  if (!forgeModal.classList.contains('hidden')) {
+    const fill = document.getElementById('forgeProgressFill');
+    if (fill) {
+      const ratio = 1 - job.time / (job.total || 1);
+      fill.style.width = (ratio * 100).toFixed(1) + '%';
+    }
+    player.forgeQueue.forEach((q, i) => {
+      const line = document.getElementById('forgeQueue' + i);
+      if (line) {
+        const m = MATERIALS[q.id];
+        const bar = MATERIALS[BAR_MAP[q.id]];
+        line.textContent = `${i + 1}. ${m.name} → ${bar.name}: ${q.time.toFixed(1)}s`;
+      }
+    });
   }
 }
 
