@@ -14,10 +14,13 @@ const marketTotal = document.getElementById('marketTotal');
 export const saveBtn = document.getElementById('saveBtn');
 export const loadBtn = document.getElementById('loadBtn');
 export const loadInput = document.getElementById('loadInput');
+export const ascendModal = document.getElementById('ascendModal');
+export const ascendBtn = document.getElementById('ascendBtn');
 
 document.getElementById('shopClose').onclick = () => closeAllModals();
 document.getElementById('invClose').onclick = () => closeAllModals();
 document.getElementById('marketClose').onclick = () => closeAllModals();
+document.getElementById('ascendClose').onclick = () => closeAllModals();
 
 export function say(text) {
   const el = document.createElement('div');
@@ -28,13 +31,13 @@ export function say(text) {
     el.style.transition = 'opacity .25s ease';
     el.style.opacity = '0';
     setTimeout(() => el.remove(), 260);
-  }, 2200);
+  }, 10000);
 }
 
 export function openModal(el) { el.classList.remove('hidden'); el.classList.add('flex'); }
 export function closeModal(el) { el.classList.add('hidden'); el.classList.remove('flex'); }
-export function closeAllModals() { closeModal(shopModal); closeModal(invModal); closeModal(marketModal); }
-export function isUIOpen() { return !shopModal.classList.contains('hidden') || !invModal.classList.contains('hidden') || !marketModal.classList.contains('hidden'); }
+export function closeAllModals() { closeModal(shopModal); closeModal(invModal); closeModal(marketModal); closeModal(ascendModal); }
+export function isUIOpen() { return !shopModal.classList.contains('hidden') || !invModal.classList.contains('hidden') || !marketModal.classList.contains('hidden') || !ascendModal.classList.contains('hidden'); }
 
 export function renderInventory(player, MATERIALS) {
   const counts = new Map();

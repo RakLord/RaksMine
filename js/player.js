@@ -1,11 +1,11 @@
 import {TILE, MAP_W} from './config.js';
 import {MATERIALS} from './materials.js';
-import {world} from './world.js';
+import {world, generateWorld} from './world.js';
 import {say} from './ui.js';
 
 export const SPAWN_X = TILE * 10;
 
-export const player = {
+const BASE_PLAYER = {
   x: SPAWN_X,
   y: TILE * 5 - 22,
   w: 16,
@@ -20,14 +20,22 @@ export const player = {
   pickPower: 2,
   speed: 0.3,
   drill: 1,
-  inventory: []
+  inventory: [],
+  ascensions: 0,
+  ascensionUnlocked: false
 };
 
-export const buildings = [
+export const player = { ...BASE_PLAYER };
+
+export const BASE_BUILDINGS = [
   { x: TILE * 8,  y: TILE * 5 - TILE * 2, w: TILE * 3, h: TILE * 2, kind: 'shop',    name: 'Shop' },
   { x: TILE * 13, y: TILE * 5 - TILE * 2, w: TILE * 3, h: TILE * 2, kind: 'builder', name: 'Builder' },
   { x: TILE * 18, y: TILE * 5 - TILE * 2, w: TILE * 3, h: TILE * 2, kind: 'market',  name: 'Market' },
 ];
+
+export const ASCENSION_BUILDING = { x: TILE * 23, y: TILE * 5 - TILE * 2, w: TILE * 3, h: TILE * 2, kind: 'ascension', name: 'Ascension' };
+
+export const buildings = BASE_BUILDINGS.slice();
 
 export function rectsIntersect(a, b) {
   return a.x < b.x + b.w && a.x + a.w > b.x && a.y < b.y + b.h && a.y + a.h > b.y;
@@ -94,6 +102,29 @@ export function teleportHome() {
   player.vy = 0;
   player.stamina = player.staminaMax;
   say('Teleported home.');
+}
+
+function resetPlayerStats() {
+  const { ascensions, ascensionUnlocked } = player;
+  Object.assign(player, { ...BASE_PLAYER, ascensions, ascensionUnlocked });
+  player.inventory = [];
+}
+
+export function ascend() {
+  if (player.cash < 10000) { say('Need $10000 to ascend.'); return false; }
+  player.ascensions++;
+  player.cash = 0;
+  resetPlayerStats();
+  generateWorld(player.ascensions);
+  buildings.length = 0;
+  buildings.push(...BASE_BUILDINGS);
+  if (player.ascensionUnlocked || player.ascensions > 0) {
+    player.ascensionUnlocked = true;
+    buildings.push({ ...ASCENSION_BUILDING });
+  }
+  teleportHome();
+  say('The world has been reborn.');
+  return true;
 }
 
 export const upgrades = {

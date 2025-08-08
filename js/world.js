@@ -13,23 +13,28 @@ export const world = {
   }
 };
 
-export function generateWorld() {
+export function generateWorld(ascensionLevel = 0) {
   for (let y = 0; y < MAP_H; y++) {
     for (let x = 0; x < MAP_W; x++) {
       if (y < 5) { world.set(x, y, 0); continue; }
       if (y === 5) { world.set(x, y, 1); continue; }
-      let id = y < 22 ? 2 : 3;
-      if (y > 18 && Math.random() < 0.10) id = 4;
-      if (y > 32 && Math.random() < 0.07) id = 5;
-      if (y > 48 && Math.random() < 0.04) id = 6;
-      if (y > 64 && Math.random() < 0.02) id = 7;
-      if (y > 8  && Math.random() < 0.015) id = 0;
+      if (y < 22) { world.set(x, y, 2); continue; }
+
+      const candidates = MATERIALS.filter(m => m.rarity && y >= (m.minDepth || 0)
+        && (!m.maxDepth || y <= m.maxDepth)
+        && ascensionLevel >= (m.ascension || 0));
+      const total = candidates.reduce((s, m) => s + m.rarity, 0);
+      let r = Math.random() * total;
+      let id = 3;
+      for (const m of candidates) {
+        r -= m.rarity;
+        if (r <= 0) { id = m.id; break; }
+      }
+      if (y > 8 && Math.random() < 0.015) id = 0;
       world.set(x, y, id);
     }
   }
 }
-
-generateWorld();
 
 export function worldToTile(px, py) {
   return { tx: Math.floor(px / TILE), ty: Math.floor(py / TILE) };

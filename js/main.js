@@ -1,9 +1,11 @@
 import {TILE, MAP_W, MAP_H, MOVE_ACC, MAX_HSPEED, GRAV, FRICTION} from './config.js';
 import {MATERIALS} from './materials.js';
-import {world, worldToTile, isSolidAt} from './world.js';
-import {canvas, ctx, statsEl, say, closeAllModals, isUIOpen, openInventory, openShop, openMarket, renderMarket, marketModal, saveBtn, loadBtn, loadInput, staminaFill, weightFill} from './ui.js';
-import {player, buildings, rectsIntersect, totalWeight, invAdd, teleportHome, upgrades, priceFor, buy, sellItem, sellAll, inventoryValue} from './player.js';
+import {world, worldToTile, isSolidAt, generateWorld} from './world.js';
+import {canvas, ctx, statsEl, say, closeAllModals, isUIOpen, openInventory, openShop, openMarket, renderMarket, marketModal, saveBtn, loadBtn, loadInput, staminaFill, weightFill, openModal, ascendModal, ascendBtn} from './ui.js';
+import {player, buildings, rectsIntersect, totalWeight, invAdd, teleportHome, upgrades, priceFor, buy, sellItem, sellAll, inventoryValue, ASCENSION_BUILDING, ascend} from './player.js';
 import {saveGameToFile, loadGameFromString} from './save.js';
+
+generateWorld(player.ascensions);
 
 const keys = new Set();
 let mouse = { down: false };
@@ -84,8 +86,10 @@ function tick() {
     } else {
       const market = buildings.find(b => b.kind === 'market');
       const shop = buildings.find(b => b.kind === 'shop');
+      const asc = buildings.find(b => b.kind === 'ascension');
       if (market && rectsIntersect(player, market)) openMarket(player, MATERIALS, sellItem, sellAll, inventoryValue);
       else if (shop && rectsIntersect(player, shop)) openShop(player, upgrades, priceFor, buy);
+      else if (asc && rectsIntersect(player, asc)) openModal(ascendModal);
       else say('No one nearby.');
     }
     keys.delete('f');
@@ -103,6 +107,12 @@ function tick() {
   player.vx = Math.max(-MAX_HSPEED * player.speed, Math.min(MAX_HSPEED * player.speed, player.vx));
   player.vx *= FRICTION;
   resolveCollisions();
+
+  if (!player.ascensionUnlocked && Math.floor((player.y + player.h) / TILE) >= MAP_H - 1) {
+    player.ascensionUnlocked = true;
+    if (!buildings.some(b => b.kind === 'ascension')) buildings.push({ ...ASCENSION_BUILDING });
+    say('A strange building appears on the surface...');
+  }
 
   if (!isSolidAt(player.x + 1, player.y + player.h) && !isSolidAt(player.x + player.w - 1, player.y + player.h))
     player.vy += GRAV * 0.5;
@@ -171,3 +181,5 @@ loadInput.onchange = e => {
   reader.readAsText(file);
   loadInput.value = '';
 };
+
+ascendBtn.onclick = () => { if (ascend()) closeAllModals(); };
