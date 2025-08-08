@@ -196,12 +196,24 @@ export function renderForge(player, MATERIALS, BAR_MAP, queueSmelt) {
       <button data-id='${it.id}' class='smelt px-3 py-1.5 rounded-md border border-slate-600'>Smelt</button>
     </div>`;
   }).join('');
+  let progressHTML = '';
+  if (player.forgeQueue.length > 0) {
+    const job = player.forgeQueue[0];
+    const m = MATERIALS[job.id];
+    const bar = MATERIALS[BAR_MAP[job.id]];
+    const total = job.total || 1;
+    const ratio = 1 - job.time / total;
+    progressHTML = `<div class='mb-2'>
+      <div class='text-xs mb-1'>Smelting ${m.name} → ${bar.name}</div>
+      <div class='w-full h-2 bg-slate-700 rounded overflow-hidden'><div class='h-full bg-amber-500' style='width:${(ratio * 100).toFixed(1)}%'></div></div>
+    </div>`;
+  }
   const queueLines = player.forgeQueue.map((job, i) => {
     const m = MATERIALS[job.id];
     const bar = MATERIALS[BAR_MAP[job.id]];
     return `<div class='text-xs'>${i + 1}. ${m.name} → ${bar.name}: ${job.time.toFixed(1)}s</div>`;
   }).join('');
-  forgeBody.innerHTML = oreLines + `<div class='mt-4'><div class='font-medium mb-1'>Queue</div>${queueLines || '<div class="text-xs text-slate-400">(empty)</div>'}</div>`;
+  forgeBody.innerHTML = oreLines + progressHTML + `<div class='mt-4'><div class='font-medium mb-1'>Queue</div>${queueLines || '<div class="text-xs text-slate-400">(empty)</div>'}</div>`;
   forgeBody.querySelectorAll('button.smelt').forEach(btn => {
     btn.onclick = () => { queueSmelt(+btn.getAttribute('data-id')); renderForge(player, MATERIALS, BAR_MAP, queueSmelt); };
   });

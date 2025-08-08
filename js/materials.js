@@ -25,7 +25,7 @@ for (const mat of base) {
     color: mat.color,
     solid: false,
     hard: 0,
-    value: mat.value * 3,
+    value: mat.value * 5,
     weight: mat.weight,
     barFor: mat.id
   };

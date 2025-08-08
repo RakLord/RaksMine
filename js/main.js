@@ -1,7 +1,7 @@
 import {TILE, MAP_W, MAP_H, MOVE_ACC, GRAV, FRICTION} from './config.js';
 import {MATERIALS, BAR_MAP} from './materials.js';
 import {world, worldToTile, isSolidAt, generateWorld} from './world.js';
-import {canvas, ctx, statsEl, say, closeAllModals, closeModal, isUIOpen, openInventory, openShop, openMarket, marketModal, saveBtn, loadBtn, loadInput, staminaBar, staminaFill, weightBar, weightFill, openModal, ascendModal, ascendBtn, settingsBtn, settingsModal, autosaveRange, autosaveLabel, toastXInput, toastYInput, keybindsTable, hardResetBtn, toastWrap, ascendCostText, openBuilder, openForge, openWarehouse} from './ui.js';
+import {canvas, ctx, statsEl, say, closeAllModals, closeModal, isUIOpen, openInventory, openShop, openMarket, marketModal, saveBtn, loadBtn, loadInput, staminaBar, staminaFill, weightBar, weightFill, openModal, ascendModal, ascendBtn, settingsBtn, settingsModal, autosaveRange, autosaveLabel, toastXInput, toastYInput, keybindsTable, hardResetBtn, toastWrap, ascendCostText, openBuilder, openForge, openWarehouse, renderForge, forgeModal} from './ui.js';
 import {player, buildings, rectsIntersect, totalWeight, invAdd, teleportHome, upgrades, priceFor, buy, sellItem, sellAll, inventoryValue, ASCENSION_BUILDING, ascend, ascensionCost, BUILDING_COSTS, contributeBuilding, queueSmelt, storeInWarehouse, takeFromWarehouse} from './player.js';
 import {setupPages} from './pages.js';
 import {setupAscensionShop} from './ascension.js';
@@ -125,7 +125,11 @@ function resolveCollisions() {
 const camera = { x: 0, y: 0 };
 
 function updateForge() {
-  if (player.forgeQueue.length === 0) return;
+  if (player.forgeQueue.length === 0) {
+    if (!forgeModal.classList.contains('hidden'))
+      renderForge(player, MATERIALS, BAR_MAP, queueSmelt);
+    return;
+  }
   const job = player.forgeQueue[0];
   job.time -= 1 / 60;
   if (job.time <= 0) {
@@ -134,6 +138,8 @@ function updateForge() {
     player.forgeQueue.shift();
     say('Smelted ' + MATERIALS[barId].name + '.');
   }
+  if (!forgeModal.classList.contains('hidden'))
+    renderForge(player, MATERIALS, BAR_MAP, queueSmelt);
 }
 
 function tick() {
