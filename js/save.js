@@ -29,6 +29,8 @@ export function loadGameFromString(b64) {
     const state = JSON.parse(json);
     Object.assign(player, state.player);
     player.inventory = state.player.inventory || [];
+    player.pages = state.player.pages || {};
+    player.equippedPages = state.player.equippedPages || {};
     buildings.length = 0;
     if (Array.isArray(state.buildings)) {
       for (const b of state.buildings) buildings.push(b);
