@@ -33,6 +33,10 @@ export function loadGameFromString(b64) {
     player.equippedPages = state.player.equippedPages || {};
     player.ascensionUpgrades = state.player.ascensionUpgrades || {};
     player.ascensionPoints = state.player.ascensionPoints || 0;
+    player.buildingProgress = state.player.buildingProgress || {};
+    player.forgeLevel = state.player.forgeLevel || 0;
+    player.forgeQueue = state.player.forgeQueue || [];
+    player.warehouse = state.player.warehouse || [];
     buildings.length = 0;
     if (Array.isArray(state.buildings)) {
       for (const b of state.buildings) buildings.push(b);

@@ -1,5 +1,5 @@
 import {TILE, MAP_W} from './config.js';
-import {MATERIALS} from './materials.js';
+import {MATERIALS, BAR_MAP} from './materials.js';
 import {world, generateWorld} from './world.js';
 import {say} from './ui.js';
 import {awardRandomPage} from './pages.js';
@@ -31,7 +31,11 @@ const BASE_PLAYER = {
   ascensionUpgrades: {},
   staminaRegen: 1,
   holdToMine: false,
-  mineUp: false
+  mineUp: false,
+  buildingProgress: {},
+  forgeLevel: 0,
+  forgeQueue: [],
+  warehouse: []
 };
 
 export const player = { ...BASE_PLAYER };
@@ -41,6 +45,9 @@ export const BASE_BUILDINGS = [
   { x: TILE * 13, y: TILE * 5 - TILE * 2, w: TILE * 3, h: TILE * 2, kind: 'builder', name: 'Builder' },
   { x: TILE * 18, y: TILE * 5 - TILE * 2, w: TILE * 3, h: TILE * 2, kind: 'market',  name: 'Market' },
 ];
+
+export const FORGE_BUILDING = { x: TILE * 28, y: TILE * 5 - TILE * 2, w: TILE * 3, h: TILE * 2, kind: 'forge', name: 'Forge' };
+export const WAREHOUSE_BUILDING = { x: TILE * 33, y: TILE * 5 - TILE * 2, w: TILE * 3, h: TILE * 2, kind: 'warehouse', name: 'Warehouse' };
 
 export const ASCENSION_BUILDING = { x: TILE * 23, y: TILE * 5 - TILE * 2, w: TILE * 3, h: TILE * 2, kind: 'ascension', name: 'Ascension' };
 
@@ -57,6 +64,15 @@ export function totalWeight() {
 export function invAdd(id, qty = 1) {
   const it = player.inventory.find(i => i.id === id);
   if (it) it.qty += qty; else player.inventory.push({ id, qty });
+}
+
+function removeFromInventory(id, qty) {
+  const it = player.inventory.find(i => i.id === id);
+  if (!it) return 0;
+  const take = Math.min(it.qty, qty);
+  it.qty -= take;
+  if (it.qty <= 0) player.inventory.splice(player.inventory.indexOf(it), 1);
+  return take;
 }
 
 export function invTrimTo(cap) {
@@ -92,6 +108,67 @@ export function sellAll() {
   player.cash += gained;
   player.inventory = [];
   say(`Sold for $${gained}`);
+}
+
+export const BUILDING_COSTS = {
+  forge: { materials: { 5: 50, 3: 50 }, cash: 5000 },
+  warehouse: { materials: { [BAR_MAP[5]]: 50, 3: 100 }, cash: 0 },
+  forgeUpgrade: { materials: { [BAR_MAP[5]]: 50 }, cash: 10000 }
+};
+
+export function contributeBuilding(kind) {
+  const cost = BUILDING_COSTS[kind];
+  if (!cost) return;
+  const prog = player.buildingProgress[kind] || { materials: {}, cash: 0 };
+  const cashNeed = (cost.cash || 0) - prog.cash;
+  const cashAdd = Math.min(player.cash, cashNeed);
+  player.cash -= cashAdd;
+  prog.cash += cashAdd;
+  for (const [id, amt] of Object.entries(cost.materials || {})) {
+    const have = removeFromInventory(+id, amt - (prog.materials[id] || 0));
+    prog.materials[id] = (prog.materials[id] || 0) + have;
+  }
+  player.buildingProgress[kind] = prog;
+  const done = prog.cash >= (cost.cash || 0) && Object.entries(cost.materials || {}).every(([id, amt]) => (prog.materials[id] || 0) >= amt);
+  if (done) {
+    if (kind === 'forge') {
+      player.forgeLevel = 1;
+      buildings.push({ ...FORGE_BUILDING });
+      say('Forge constructed!');
+    } else if (kind === 'warehouse') {
+      buildings.push({ ...WAREHOUSE_BUILDING });
+      say('Warehouse constructed!');
+    } else if (kind === 'forgeUpgrade') {
+      player.forgeLevel++;
+      say('Forge upgraded!');
+    }
+    delete player.buildingProgress[kind];
+  }
+}
+
+export function queueSmelt(oreId) {
+  const barId = BAR_MAP[oreId];
+  if (barId === undefined) { say('Cannot smelt that.'); return; }
+  const taken = removeFromInventory(oreId, 10);
+  if (taken < 10) { if (taken > 0) invAdd(oreId, taken); say('Need 10 ore.'); return; }
+  const time = 10 / Math.pow(2, Math.max(player.forgeLevel - 1, 0));
+  player.forgeQueue.push({ id: oreId, time });
+  say('Smelting started.');
+}
+
+export function storeInWarehouse(id) {
+  const taken = removeFromInventory(id, Infinity);
+  if (taken <= 0) { say('Nothing to store.'); return; }
+  const slot = player.warehouse.find(i => i.id === id);
+  if (slot) slot.qty += taken; else player.warehouse.push({ id, qty: taken });
+}
+
+export function takeFromWarehouse(id) {
+  const idx = player.warehouse.findIndex(i => i.id === id);
+  if (idx === -1) return;
+  const it = player.warehouse[idx];
+  invAdd(id, it.qty);
+  player.warehouse.splice(idx, 1);
 }
 
 export function teleportHome() {
