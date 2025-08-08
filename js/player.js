@@ -70,8 +70,8 @@ export function sellItem(id) {
 }
 
 export function sellAll() {
+  if (player.inventory.length === 0) { say('Inventory empty.'); return; }
   const gained = inventoryValue();
-  if (gained === 0) { say('Inventory empty.'); return; }
   player.cash += gained;
   player.inventory = [];
   say(`Sold for $${gained}`);
