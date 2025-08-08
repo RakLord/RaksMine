@@ -131,13 +131,17 @@ export function ascend() {
 export const upgrades = {
   pickaxe:  { key: 'pickPower', name: 'Pickaxe',           desc: 'Mine harder materials', step: 1,    max: 10,  base: 50,  scale: 1.6,  baseLevel: 0 },
   boots:    { key: 'speed',     name: 'Boots',             desc: 'Move faster',          step: 0.10, max: 2.0, base: 80,  scale: 1.5,  baseLevel: 0.3 },
-  backpack: { key: 'carryCap',  name: 'Leather Backpack',  desc: 'Increase carry cap',   step: 20,   max: 300, base: 60,  scale: 1.45, baseLevel: 0 },
+  backpack: { key: 'carryCap',  name: 'Leather Backpack',  desc: 'Increase carry cap',   max: Infinity, base: 60,  scale: 5, baseLevel: 40 },
   lungs:    { key: 'staminaMax', name: 'Lung Expansion Pills', desc: 'Increase stamina',   step: 20,   max: Infinity, baseLevel: 100, price: level => 150 * Math.pow(level + 1, 1.3) },
   drill:    { key: 'drill',     name: 'Drill Expander',    desc: 'Mine more blocks',     step: 1,    max: 5,      baseLevel: 1,    price: level => (level + 1) * 500 }
 };
 
 export function priceFor(u) {
   const cur = player[u.key];
+  if (u.key === 'carryCap') {
+    const level = Math.round(Math.log2(cur / u.baseLevel));
+    return Math.round(u.base * Math.pow(u.scale, level));
+  }
   const baseLevel = u.baseLevel !== undefined ? u.baseLevel : 0;
   const level = Math.round((cur - baseLevel) / u.step);
   if (typeof u.price === 'function') return Math.round(u.price(level));
@@ -147,7 +151,7 @@ export function priceFor(u) {
 export function buy(u) {
   const cost = priceFor(u);
   if (player.cash < cost) { say('Not enough cash'); return; }
-  const next = +(player[u.key] + u.step).toFixed(2);
+  const next = u.key === 'carryCap' ? player[u.key] * 2 : +(player[u.key] + u.step).toFixed(2);
   if (next > u.max) { say('Maxed'); return; }
   player.cash -= cost;
   player[u.key] = next;

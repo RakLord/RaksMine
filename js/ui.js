@@ -78,7 +78,9 @@ export function renderShop(player, upgrades, priceFor, buy) {
   const items = [upgrades.pickaxe, upgrades.boots, upgrades.backpack, upgrades.lungs, upgrades.drill];
   shopBody.innerHTML = items.map(u => {
     const cur = player[u.key];
-    const nxt = Math.min(u.max, +(cur + u.step).toFixed(2));
+    const nxt = u.key === 'carryCap'
+      ? Math.min(u.max, cur * 2)
+      : Math.min(u.max, +(cur + u.step).toFixed(2));
     const cost = priceFor(u);
     const disabled = (nxt <= cur || player.cash < cost) ? 'opacity-50 cursor-not-allowed' : '';
     return `
