@@ -205,7 +205,6 @@ export function renderForge(player, MATERIALS, BAR_MAP, queueSmelt) {
     const ratio = 1 - job.time / total;
     progressHTML = `<div class='mb-2'>
       <div class='text-xs mb-1'>Smelting ${m.name} → ${bar.name}</div>
-      <div class='w-full h-2 bg-slate-700 rounded overflow-hidden'><div id='forgeProgressFill' class='h-full bg-amber-500' style='width:${(ratio * 100).toFixed(1)}%'></div></div>
     </div>`;
   }
   const queueLines = player.forgeQueue.map((job, i) => {

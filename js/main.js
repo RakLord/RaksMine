@@ -125,7 +125,11 @@ function resolveCollisions() {
 const camera = { x: 0, y: 0 };
 
 function updateForge() {
-  if (player.forgeQueue.length === 0) return;
+  if (player.forgeQueue.length === 0) {
+    if (!forgeModal.classList.contains('hidden'))
+      renderForge(player, MATERIALS, BAR_MAP, queueSmelt);
+    return;
+  }
   const job = player.forgeQueue[0];
   job.time -= 1 / 60;
   if (job.time <= 0) {
@@ -152,6 +156,8 @@ function updateForge() {
       }
     });
   }
+  if (!forgeModal.classList.contains('hidden'))
+    renderForge(player, MATERIALS, BAR_MAP, queueSmelt);
 }
 
 function tick() {
