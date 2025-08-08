@@ -58,7 +58,7 @@ export function openInventory(player, MATERIALS) {
 }
 
 export function renderShop(player, upgrades, priceFor, buy) {
-  const items = [upgrades.pickaxe, upgrades.boots, upgrades.backpack];
+  const items = [upgrades.pickaxe, upgrades.boots, upgrades.backpack, upgrades.lungs, upgrades.drill];
   shopBody.innerHTML = items.map(u => {
     const cur = player[u.key];
     const nxt = Math.min(u.max, +(cur + u.step).toFixed(2));
