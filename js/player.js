@@ -1,4 +1,4 @@
-import {TILE} from './config.js';
+import {TILE, MAP_W} from './config.js';
 import {MATERIALS} from './materials.js';
 import {world} from './world.js';
 import {say} from './ui.js';
@@ -18,7 +18,7 @@ export const player = {
   staminaMax: 100,
   carryCap: 40,
   pickPower: 2,
-  speed: 0.6,
+  speed: 0.3,
   drill: 1,
   inventory: []
 };
@@ -82,6 +82,9 @@ export function teleportHome() {
     invTrimTo(player.carryCap);
     say('Overweight. Excess destroyed.');
   }
+  for (let x = 0; x < MAP_W; x++) {
+    world.set(x, 5, 1);
+  }
   const tx = Math.floor(SPAWN_X / TILE);
   world.set(tx, 5, 1);
   world.set(tx, 6, 2);
@@ -95,7 +98,7 @@ export function teleportHome() {
 
 export const upgrades = {
   pickaxe:  { key: 'pickPower', name: 'Pickaxe',           desc: 'Mine harder materials', step: 1,    max: 10,  base: 50,  scale: 1.6,  baseLevel: 0 },
-  boots:    { key: 'speed',     name: 'Boots',             desc: 'Move faster',          step: 0.10, max: 2.0, base: 80,  scale: 1.5,  baseLevel: 0.6 },
+  boots:    { key: 'speed',     name: 'Boots',             desc: 'Move faster',          step: 0.10, max: 2.0, base: 80,  scale: 1.5,  baseLevel: 0.3 },
   backpack: { key: 'carryCap',  name: 'Leather Backpack',  desc: 'Increase carry cap',   step: 20,   max: 300, base: 60,  scale: 1.45, baseLevel: 0 },
   lungs:    { key: 'staminaMax', name: 'Lung Expansion Pills', desc: 'Increase stamina',   step: 20,   max: Infinity, baseLevel: 100, price: level => 150 * Math.pow(level + 1, 1.3) },
   drill:    { key: 'drill',     name: 'Drill Expander',    desc: 'Mine more blocks',     step: 1,    max: 5,      baseLevel: 1,    price: level => (level + 1) * 500 }
