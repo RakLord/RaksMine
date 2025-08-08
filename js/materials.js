@@ -11,3 +11,25 @@ export const MATERIALS = [
   {id:8, name:'Diamond', color:'#00d0ff', solid:true,  hard:9, value:100,weight:1, rarity:1,  minDepth:300, ascension:1, ore:true}
 ];
 
+// Mapping from ore id to bar id
+export const BAR_MAP = {};
+
+// Automatically generate bar variants for ores
+const base = MATERIALS.slice();
+for (const mat of base) {
+  if (!mat.ore) continue;
+  const id = MATERIALS.length;
+  const bar = {
+    id,
+    name: mat.name + ' Bar',
+    color: mat.color,
+    solid: false,
+    hard: 0,
+    value: mat.value * 3,
+    weight: mat.weight,
+    barFor: mat.id
+  };
+  MATERIALS.push(bar);
+  BAR_MAP[mat.id] = id;
+}
+

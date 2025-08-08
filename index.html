@@ -75,6 +75,48 @@
     </div>
   </div>
 
+  <!-- Builder modal -->
+  <div id="builderModal" class="hidden fixed inset-0 z-20 flex items-center justify-center bg-black/50">
+    <div class="bg-slate-900 border border-slate-700 rounded-2xl shadow-xl w-[480px] max-w-[92vw]">
+      <div class="flex items-center justify-between px-4 py-3 border-b border-slate-700">
+        <h3 class="text-base font-semibold">Builder</h3>
+        <button id="builderClose" class="px-2 py-1 text-sm rounded-md border border-slate-700 hover:bg-slate-800">Close</button>
+      </div>
+      <div class="p-4 space-y-3 text-sm" id="builderBody"></div>
+    </div>
+  </div>
+
+  <!-- Forge modal -->
+  <div id="forgeModal" class="hidden fixed inset-0 z-20 flex items-center justify-center bg-black/50">
+    <div class="bg-slate-900 border border-slate-700 rounded-2xl shadow-xl w-[480px] max-w-[92vw]">
+      <div class="flex items-center justify-between px-4 py-3 border-b border-slate-700">
+        <h3 class="text-base font-semibold">Forge</h3>
+        <button id="forgeClose" class="px-2 py-1 text-sm rounded-md border border-slate-700 hover:bg-slate-800">Close</button>
+      </div>
+      <div class="p-4 space-y-3 text-sm" id="forgeBody"></div>
+    </div>
+  </div>
+
+  <!-- Warehouse modal -->
+  <div id="warehouseModal" class="hidden fixed inset-0 z-20 flex items-center justify-center bg-black/50">
+    <div class="bg-slate-900 border border-slate-700 rounded-2xl shadow-xl w-[480px] max-w-[92vw]">
+      <div class="flex items-center justify-between px-4 py-3 border-b border-slate-700">
+        <h3 class="text-base font-semibold">Warehouse</h3>
+        <button id="warehouseClose" class="px-2 py-1 text-sm rounded-md border border-slate-700 hover:bg-slate-800">Close</button>
+      </div>
+      <div class="p-4 space-y-4 text-sm">
+        <div>
+          <h4 class="font-medium mb-1">Player Inventory</h4>
+          <div id="warehousePlayerInv" class="space-y-2"></div>
+        </div>
+        <div>
+          <h4 class="font-medium mb-1">Warehouse Storage</h4>
+          <div id="warehouseInv" class="space-y-2"></div>
+        </div>
+      </div>
+    </div>
+  </div>
+
   <!-- Ascension modal -->
   <div id="ascendModal" class="hidden fixed inset-0 z-20 flex items-center justify-center bg-black/50">
     <div class="bg-slate-900 border border-slate-700 rounded-2xl shadow-xl w-[360px] max-w-[92vw]">
