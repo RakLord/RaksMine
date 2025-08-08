@@ -22,7 +22,8 @@ const BASE_PLAYER = {
   drill: 1,
   inventory: [],
   ascensions: 0,
-  ascensionUnlocked: false
+  ascensionUnlocked: false,
+  holdToMine: false
 };
 
 export const player = { ...BASE_PLAYER };
@@ -105,8 +106,8 @@ export function teleportHome() {
 }
 
 function resetPlayerStats() {
-  const { ascensions, ascensionUnlocked } = player;
-  Object.assign(player, { ...BASE_PLAYER, ascensions, ascensionUnlocked });
+  const { ascensions, ascensionUnlocked, holdToMine } = player;
+  Object.assign(player, { ...BASE_PLAYER, ascensions, ascensionUnlocked, holdToMine });
   player.inventory = [];
 }
 

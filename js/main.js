@@ -15,6 +15,7 @@ let weightWarned = false;
 addEventListener('keydown', e => {
   const k = e.key;
   if (k === 'Escape') { closeAllModals(); return; }
+  if (k === ' ' && e.repeat && !player.holdToMine) return;
   const lk = k.toLowerCase();
   keys.add(lk);
   if (lk === 'a') lastDir = 'left';
@@ -98,7 +99,10 @@ function tick() {
   if (!isUIOpen()) {
     if (keys.has('a')) { player.vx -= MOVE_ACC * player.speed; player.facing = -1; }
     if (keys.has('d')) { player.vx += MOVE_ACC * player.speed; player.facing = 1; }
-    if (keys.has(' ')) { tryMine(); keys.delete(' '); }
+    if (keys.has(' ')) {
+      tryMine();
+      if (!player.holdToMine) keys.delete(' ');
+    }
     if (keys.has('e')) { openInventory(player, MATERIALS); keys.delete('e'); }
     if (keys.has('r')) { teleportHome(); keys.delete('r'); }
   }
