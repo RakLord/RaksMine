@@ -18,6 +18,7 @@ export const loadBtn = document.getElementById('loadBtn');
 export const loadInput = document.getElementById('loadInput');
 export const ascendModal = document.getElementById('ascendModal');
 export const ascendBtn = document.getElementById('ascendBtn');
+export const ascendCostText = document.getElementById('ascendCostText');
 export const ascShopBtn = document.getElementById('ascShopBtn');
 export const ascShopModal = document.getElementById('ascShopModal');
 export const ascShopBody = document.getElementById('ascShopBody');
