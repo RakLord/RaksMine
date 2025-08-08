@@ -120,7 +120,16 @@ function resetPlayerStats() {
 }
 
 export function ascend() {
-  if (player.cash < 10000) { say('Need $10000 to ascend.'); return false; }
+  if (player.cash < 10000) {
+    if (confirm('Not enough money to ascend. Ascend for no gain?')) {
+      softReset();
+      say('Ascended for no gain.');
+      return true;
+    } else {
+      say('Need $10000 to ascend.');
+      return false;
+    }
+  }
   player.ascensions++;
   player.ascensionPoints += player.ascensions;
   player.cash = 0;

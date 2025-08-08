@@ -21,7 +21,6 @@ export const ascendBtn = document.getElementById('ascendBtn');
 export const ascShopBtn = document.getElementById('ascShopBtn');
 export const ascShopModal = document.getElementById('ascShopModal');
 export const ascShopBody = document.getElementById('ascShopBody');
-export const softResetBtn = document.getElementById('softResetBtn');
 export const settingsBtn = document.getElementById('settingsBtn');
 export const settingsModal = document.getElementById('settingsModal');
 export const settingsClose = document.getElementById('settingsClose');
