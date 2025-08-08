@@ -3,6 +3,7 @@ export const ctx = canvas.getContext('2d');
 export const statsEl = document.getElementById('stats');
 const toastWrap = document.getElementById('toasts');
 export const staminaFill = document.getElementById('staminaFill');
+export const weightFill = document.getElementById('weightFill');
 export const shopModal = document.getElementById('shopModal');
 const shopBody = document.getElementById('shopBody');
 export const invModal = document.getElementById('invModal');
