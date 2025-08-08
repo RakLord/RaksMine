@@ -29,10 +29,19 @@ function tryMine() {
   else if (lastDir === 'left') dx = -1; else if (lastDir === 'right') dx = 1;
   const cx = player.x + player.w / 2, cy = player.y + player.h / 2;
   const { tx, ty } = worldToTile(cx, cy);
-  const id = world.get(tx + dx, ty + dy); if (id <= 0) return;
-  const m = MATERIALS[id];
-  const cost = 3 + m.hard; if (m.hard > player.pickPower || player.stamina < cost) return;
-  world.set(tx + dx, ty + dy, 0); player.stamina -= cost; invAdd(id, 1); if (dy === 1) player.vy = Math.max(player.vy, 0.5);
+  let mined = false;
+  for (let i = 1; i <= player.drill; i++) {
+    const id = world.get(tx + dx * i, ty + dy * i);
+    if (id <= 0) continue;
+    const m = MATERIALS[id];
+    const cost = 3 + m.hard;
+    if (m.hard > player.pickPower || player.stamina < cost) break;
+    world.set(tx + dx * i, ty + dy * i, 0);
+    player.stamina -= cost;
+    invAdd(id, 1);
+    mined = true;
+  }
+  if (mined && dy === 1) player.vy = Math.max(player.vy, 0.5);
 }
 
 function resolveCollisions() {
@@ -116,7 +125,7 @@ function draw() {
   ctx.fillStyle = '#f59e0b';
   ctx.fillRect(player.x - camera.x, player.y - camera.y, player.w, player.h);
 
-  statsEl.innerHTML = `Cash: $${player.cash} | Stamina: ${Math.floor(player.stamina)}/${player.staminaMax} | Weight: ${totalWeight()}/${player.carryCap} | Pick: ${player.pickPower} | Speed×${player.speed.toFixed(2)}`;
+  statsEl.innerHTML = `Cash: $${player.cash} | Stamina: ${Math.floor(player.stamina)}/${player.staminaMax} | Weight: ${totalWeight()}/${player.carryCap} | Pick: ${player.pickPower} | Drill: ${player.drill} | Speed×${player.speed.toFixed(2)}`;
 }
 
 function loop() { tick(); draw(); requestAnimationFrame(loop); }

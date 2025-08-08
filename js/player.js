@@ -18,7 +18,8 @@ export const player = {
   staminaMax: 100,
   carryCap: 40,
   pickPower: 2,
-  speed: 1.0,
+  speed: 0.6,
+  drill: 1,
   inventory: []
 };
 
@@ -93,15 +94,18 @@ export function teleportHome() {
 }
 
 export const upgrades = {
-  pickaxe:  { key: 'pickPower', name: 'Pickaxe',           desc: 'Mine harder materials', step: 1,    max: 10,  base: 50,  scale: 1.6 },
-  boots:    { key: 'speed',     name: 'Boots',             desc: 'Move faster',          step: 0.10, max: 2.0, base: 80,  scale: 1.5 },
-  backpack: { key: 'carryCap',  name: 'Leather Backpack',  desc: 'Increase carry cap',   step: 20,   max: 300, base: 60,  scale: 1.45 },
+  pickaxe:  { key: 'pickPower', name: 'Pickaxe',           desc: 'Mine harder materials', step: 1,    max: 10,  base: 50,  scale: 1.6,  baseLevel: 0 },
+  boots:    { key: 'speed',     name: 'Boots',             desc: 'Move faster',          step: 0.10, max: 2.0, base: 80,  scale: 1.5,  baseLevel: 0.6 },
+  backpack: { key: 'carryCap',  name: 'Leather Backpack',  desc: 'Increase carry cap',   step: 20,   max: 300, base: 60,  scale: 1.45, baseLevel: 0 },
+  lungs:    { key: 'staminaMax', name: 'Lung Expansion Pills', desc: 'Increase stamina',   step: 20,   max: Infinity, baseLevel: 100, price: level => 150 * Math.pow(level + 1, 1.3) },
+  drill:    { key: 'drill',     name: 'Drill Expander',    desc: 'Mine more blocks',     step: 1,    max: 5,      baseLevel: 1,    price: level => (level + 1) * 500 }
 };
 
 export function priceFor(u) {
   const cur = player[u.key];
-  const baseLevel = u.key === 'speed' ? 1.0 : 0.0;
+  const baseLevel = u.baseLevel !== undefined ? u.baseLevel : 0;
   const level = Math.round((cur - baseLevel) / u.step);
+  if (typeof u.price === 'function') return Math.round(u.price(level));
   return Math.round(u.base * Math.pow(u.scale, level));
 }
 
@@ -112,5 +116,6 @@ export function buy(u) {
   if (next > u.max) { say('Maxed'); return; }
   player.cash -= cost;
   player[u.key] = next;
+  if (u.key === 'staminaMax') player.stamina = next;
   say(`${u.name} -> ${next}`);
 }
