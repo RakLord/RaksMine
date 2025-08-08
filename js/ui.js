@@ -123,6 +123,6 @@ export function renderMarket(player, MATERIALS, sellItem, sellAll, inventoryValu
 
 export function openMarket(player, MATERIALS, sellItem, sellAll, inventoryValue) {
   renderMarket(player, MATERIALS, sellItem, sellAll, inventoryValue);
-  document.getElementById('marketSellAll').onclick = () => { sellAll(); renderMarket(player, MATERIALS, sellItem, sellAll, inventoryValue); };
+  document.getElementById('marketSellAll').onclick = () => { sellAll(); closeModal(marketModal); };
   openModal(marketModal);
 }

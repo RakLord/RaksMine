@@ -1,7 +1,7 @@
 import {TILE, MAP_W, MAP_H, MOVE_ACC, MAX_HSPEED, GRAV, FRICTION} from './config.js';
 import {MATERIALS} from './materials.js';
 import {world, worldToTile, isSolidAt, generateWorld} from './world.js';
-import {canvas, ctx, statsEl, say, closeAllModals, isUIOpen, openInventory, openShop, openMarket, renderMarket, marketModal, saveBtn, loadBtn, loadInput, staminaFill, weightFill, openModal, ascendModal, ascendBtn, settingsBtn, settingsModal, autosaveRange, autosaveLabel, keybindsTable, hardResetBtn} from './ui.js';
+import {canvas, ctx, statsEl, say, closeAllModals, closeModal, isUIOpen, openInventory, openShop, openMarket, marketModal, saveBtn, loadBtn, loadInput, staminaFill, weightFill, openModal, ascendModal, ascendBtn, settingsBtn, settingsModal, autosaveRange, autosaveLabel, keybindsTable, hardResetBtn} from './ui.js';
 import {player, buildings, rectsIntersect, totalWeight, invAdd, teleportHome, upgrades, priceFor, buy, sellItem, sellAll, inventoryValue, ASCENSION_BUILDING, ascend} from './player.js';
 import {saveGameToFile, loadGameFromString, saveGameToStorage, loadGameFromStorage, SAVE_KEY} from './save.js';
 
@@ -62,11 +62,13 @@ function tryMine() {
   if (player.stamina < cost) return;
   let mined = false;
   for (let i = 1; i <= player.drill; i++) {
-    const id = world.get(tx + dx * i, ty + dy * i);
+    const x = tx + dx * i, y = ty + dy * i;
+    if (x < 0 || y < 0 || x >= MAP_W || y >= MAP_H) continue;
+    const id = world.get(x, y);
     if (id <= 0) continue;
     const m = MATERIALS[id];
     if (m.hard > player.pickPower) break;
-    world.set(tx + dx * i, ty + dy * i, 0);
+    world.set(x, y, 0);
     invAdd(id, 1);
     mined = true;
   }
@@ -107,7 +109,7 @@ function tick() {
     if (isUIOpen()) {
       if (!marketModal.classList.contains('hidden')) {
         sellAll();
-        renderMarket(player, MATERIALS, sellItem, sellAll, inventoryValue);
+        closeModal(marketModal);
       }
     } else {
       const market = buildings.find(b => b.kind === 'market');
