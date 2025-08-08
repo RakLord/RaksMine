@@ -129,7 +129,9 @@ function draw() {
   ctx.fillRect(player.x - camera.x, player.y - camera.y, player.w, player.h);
 
   statsEl.innerHTML = `Cash: $${player.cash} | Stamina: ${Math.floor(player.stamina)}/${player.staminaMax} | Weight: ${totalWeight()}/${player.carryCap} | Pick: ${player.pickPower} | Drill: ${player.drill} | Speed×${player.speed.toFixed(2)}`;
-  staminaFill.style.height = (player.stamina / player.staminaMax * 100) + '%';
+  const staminaRatio = Math.max(0, Math.min(player.stamina / player.staminaMax, 1));
+  staminaFill.style.height = (staminaRatio * 100) + '%';
+  staminaFill.style.backgroundColor = `hsl(${staminaRatio * 120}, 100%, 50%)`;
 }
 
 function loop() { tick(); draw(); requestAnimationFrame(loop); }
