@@ -43,7 +43,7 @@ export function loadGameFromString(b64) {
   }
 }
 
-const SAVE_KEY = 'raksmine-save';
+export const SAVE_KEY = 'raksmine-save';
 
 export function saveGameToStorage() {
   try {
