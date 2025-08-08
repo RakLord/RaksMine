@@ -18,6 +18,7 @@
     <button id="saveBtn" class="panel">Save</button>
     <button id="loadBtn" class="panel">Load</button>
     <input id="loadInput" type="file" accept=".txt" class="hidden" />
+    <button id="settingsBtn" class="panel ml-auto">Settings</button>
   </div>
   <div class="fixed left-2 top-1/2 -translate-y-1/2 flex gap-2 pointer-events-none">
     <div id="staminaBar" class="relative w-8 h-48 bg-slate-800 border border-slate-600 overflow-hidden">
@@ -79,6 +80,29 @@
       <div class="p-4 space-y-3 text-sm">
         <p>Reset the world for new opportunities. Cost: $10,000.</p>
         <button id="ascendBtn" class="px-3 py-1.5 rounded-md border border-slate-600 w-full">Ascend</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- Settings modal -->
+  <div id="settingsModal" class="hidden fixed inset-0 z-20 flex items-center justify-center bg-black/50">
+    <div class="bg-slate-900 border border-slate-700 rounded-2xl shadow-xl w-[400px] max-w-[92vw]">
+      <div class="flex items-center justify-between px-4 py-3 border-b border-slate-700">
+        <h3 class="text-base font-semibold">Settings</h3>
+        <button id="settingsClose" class="px-2 py-1 text-sm rounded-md border border-slate-700 hover:bg-slate-800">Close</button>
+      </div>
+      <div class="p-4 space-y-4 text-sm">
+        <div>
+          <label for="autosaveRange" class="font-medium">Autosave Interval: <span id="autosaveLabel"></span></label>
+          <input id="autosaveRange" type="range" min="10" max="300" step="10" class="w-full">
+        </div>
+        <div>
+          <h4 class="font-medium mb-1">Key Bindings</h4>
+          <div id="keybindsTable" class="grid grid-cols-2 gap-2"></div>
+        </div>
+        <div>
+          <button id="hardResetBtn" class="px-3 py-1.5 rounded-md border border-red-600 text-red-400 w-full">Hard Reset</button>
+        </div>
       </div>
     </div>
   </div>

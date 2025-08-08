@@ -1,9 +1,9 @@
 import {TILE, MAP_W, MAP_H, MOVE_ACC, MAX_HSPEED, GRAV, FRICTION} from './config.js';
 import {MATERIALS} from './materials.js';
 import {world, worldToTile, isSolidAt, generateWorld} from './world.js';
-import {canvas, ctx, statsEl, say, closeAllModals, isUIOpen, openInventory, openShop, openMarket, renderMarket, marketModal, saveBtn, loadBtn, loadInput, staminaFill, weightFill, openModal, ascendModal, ascendBtn} from './ui.js';
+import {canvas, ctx, statsEl, say, closeAllModals, isUIOpen, openInventory, openShop, openMarket, renderMarket, marketModal, saveBtn, loadBtn, loadInput, staminaFill, weightFill, openModal, ascendModal, ascendBtn, settingsBtn, settingsModal, autosaveRange, autosaveLabel, keybindsTable, hardResetBtn} from './ui.js';
 import {player, buildings, rectsIntersect, totalWeight, invAdd, teleportHome, upgrades, priceFor, buy, sellItem, sellAll, inventoryValue, ASCENSION_BUILDING, ascend} from './player.js';
-import {saveGameToFile, loadGameFromString, saveGameToStorage, loadGameFromStorage} from './save.js';
+import {saveGameToFile, loadGameFromString, saveGameToStorage, loadGameFromStorage, SAVE_KEY} from './save.js';
 
 generateWorld(player.ascensions);
 if (loadGameFromStorage()) {
@@ -15,14 +15,36 @@ let mouse = { down: false };
 let lastDir = 'right';
 let weightWarned = false;
 
+const DEFAULT_KEYBINDS = {
+  left: 'a',
+  right: 'd',
+  mine: ' ',
+  inventory: 'e',
+  teleport: 'r',
+  interact: 'f'
+};
+const keyDescriptions = {
+  left: 'Move Left',
+  right: 'Move Right',
+  mine: 'Mine',
+  inventory: 'Open Inventory',
+  teleport: 'Teleport Home',
+  interact: 'Interact'
+};
+let keybinds = JSON.parse(localStorage.getItem('keybinds') || 'null') || { ...DEFAULT_KEYBINDS };
+
+function saveKeybinds() { localStorage.setItem('keybinds', JSON.stringify(keybinds)); }
+
+function keyLabel(k) { return k === ' ' ? 'Space' : k.length === 1 ? k.toUpperCase() : k; }
+
 addEventListener('keydown', e => {
   const k = e.key;
   if (k === 'Escape') { closeAllModals(); return; }
   if (k === ' ' && e.repeat && !player.holdToMine) return;
   const lk = k.toLowerCase();
   keys.add(lk);
-  if (lk === 'a') lastDir = 'left';
-  if (lk === 'd') lastDir = 'right';
+  if (lk === keybinds.left) lastDir = 'left';
+  if (lk === keybinds.right) lastDir = 'right';
 });
 
 addEventListener('keyup', e => keys.delete(e.key.toLowerCase()));
@@ -30,7 +52,7 @@ canvas.addEventListener('mousedown', () => mouse.down = true);
 addEventListener('mouseup', () => mouse.down = false);
 
 function tryMine() {
-  const moving = keys.has('a') || keys.has('d');
+  const moving = keys.has(keybinds.left) || keys.has(keybinds.right);
   let dx = 0, dy = 0;
   if (!moving) { dy = 1; }
   else if (lastDir === 'left') dx = -1; else if (lastDir === 'right') dx = 1;
@@ -81,7 +103,7 @@ function resolveCollisions() {
 const camera = { x: 0, y: 0 };
 
 function tick() {
-  if (keys.has('f')) {
+  if (keys.has(keybinds.interact)) {
     if (isUIOpen()) {
       if (!marketModal.classList.contains('hidden')) {
         sellAll();
@@ -96,18 +118,18 @@ function tick() {
       else if (asc && rectsIntersect(player, asc)) openModal(ascendModal);
       else say('No one nearby.');
     }
-    keys.delete('f');
+    keys.delete(keybinds.interact);
   }
 
   if (!isUIOpen()) {
-    if (keys.has('a')) { player.vx -= MOVE_ACC * player.speed; player.facing = -1; }
-    if (keys.has('d')) { player.vx += MOVE_ACC * player.speed; player.facing = 1; }
-    if (keys.has(' ')) {
+    if (keys.has(keybinds.left)) { player.vx -= MOVE_ACC * player.speed; player.facing = -1; }
+    if (keys.has(keybinds.right)) { player.vx += MOVE_ACC * player.speed; player.facing = 1; }
+    if (keys.has(keybinds.mine)) {
       tryMine();
-      if (!player.holdToMine) keys.delete(' ');
+      if (!player.holdToMine) keys.delete(keybinds.mine);
     }
-    if (keys.has('e')) { openInventory(player, MATERIALS); keys.delete('e'); }
-    if (keys.has('r')) { teleportHome(); keys.delete('r'); }
+    if (keys.has(keybinds.inventory)) { openInventory(player, MATERIALS); keys.delete(keybinds.inventory); }
+    if (keys.has(keybinds.teleport)) { teleportHome(); keys.delete(keybinds.teleport); }
   }
 
   player.vy += GRAV; if (player.vy > 18) player.vy = 18;
@@ -191,6 +213,51 @@ loadInput.onchange = e => {
 
 ascendBtn.onclick = () => { if (ascend()) closeAllModals(); };
 
+settingsBtn.onclick = () => { renderKeybinds(); openModal(settingsModal); };
+
+function renderKeybinds() {
+  keybindsTable.innerHTML = Object.keys(keybinds).map(action => `
+    <div class='py-1'>${keyDescriptions[action]}</div>
+    <button data-action='${action}' class='key px-2 py-1 rounded-md border border-slate-600'>${keyLabel(keybinds[action])}</button>
+  `).join('');
+  keybindsTable.querySelectorAll('button.key').forEach(btn => {
+    btn.onclick = () => {
+      const action = btn.getAttribute('data-action');
+      btn.textContent = '...';
+      function handler(e) {
+        e.preventDefault(); e.stopPropagation();
+        const lk = e.key.toLowerCase();
+        keybinds[action] = lk;
+        saveKeybinds();
+        renderKeybinds();
+        window.removeEventListener('keydown', handler, true);
+      }
+      window.addEventListener('keydown', handler, true);
+    };
+  });
+}
+
+let autosaveMs = parseInt(localStorage.getItem('autosaveInterval') || '10000');
+autosaveRange.value = autosaveMs / 1000;
+function refreshAutosaveLabel() { autosaveLabel.textContent = (autosaveMs / 1000) + 's'; }
+refreshAutosaveLabel();
+let autosaveHandle = setInterval(saveGameToStorage, autosaveMs);
+autosaveRange.oninput = () => {
+  autosaveMs = autosaveRange.value * 1000;
+  localStorage.setItem('autosaveInterval', autosaveMs);
+  refreshAutosaveLabel();
+  clearInterval(autosaveHandle);
+  autosaveHandle = setInterval(saveGameToStorage, autosaveMs);
+};
+
+hardResetBtn.onclick = () => {
+  if (confirm('Erase all save data?')) {
+    localStorage.removeItem(SAVE_KEY);
+    localStorage.removeItem('keybinds');
+    localStorage.removeItem('autosaveInterval');
+    location.reload();
+  }
+};
+
 saveGameToStorage();
-setInterval(saveGameToStorage, 10000);
 addEventListener('beforeunload', saveGameToStorage);
