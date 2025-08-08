@@ -1,8 +1,10 @@
 export const canvas = document.getElementById('game');
 export const ctx = canvas.getContext('2d');
 export const statsEl = document.getElementById('stats');
-const toastWrap = document.getElementById('toasts');
+export const toastWrap = document.getElementById('toasts');
+export const staminaBar = document.getElementById('staminaBar');
 export const staminaFill = document.getElementById('staminaFill');
+export const weightBar = document.getElementById('weightBar');
 export const weightFill = document.getElementById('weightFill');
 export const shopModal = document.getElementById('shopModal');
 const shopBody = document.getElementById('shopBody');
@@ -21,6 +23,8 @@ export const settingsModal = document.getElementById('settingsModal');
 export const settingsClose = document.getElementById('settingsClose');
 export const autosaveRange = document.getElementById('autosaveRange');
 export const autosaveLabel = document.getElementById('autosaveLabel');
+export const toastXInput = document.getElementById('toastXInput');
+export const toastYInput = document.getElementById('toastYInput');
 export const keybindsTable = document.getElementById('keybindsTable');
 export const hardResetBtn = document.getElementById('hardResetBtn');
 

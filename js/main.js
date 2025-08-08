@@ -1,7 +1,7 @@
 import {TILE, MAP_W, MAP_H, MOVE_ACC, MAX_HSPEED, GRAV, FRICTION} from './config.js';
 import {MATERIALS} from './materials.js';
 import {world, worldToTile, isSolidAt, generateWorld} from './world.js';
-import {canvas, ctx, statsEl, say, closeAllModals, closeModal, isUIOpen, openInventory, openShop, openMarket, marketModal, saveBtn, loadBtn, loadInput, staminaFill, weightFill, openModal, ascendModal, ascendBtn, settingsBtn, settingsModal, autosaveRange, autosaveLabel, keybindsTable, hardResetBtn} from './ui.js';
+import {canvas, ctx, statsEl, say, closeAllModals, closeModal, isUIOpen, openInventory, openShop, openMarket, marketModal, saveBtn, loadBtn, loadInput, staminaBar, staminaFill, weightBar, weightFill, openModal, ascendModal, ascendBtn, settingsBtn, settingsModal, autosaveRange, autosaveLabel, toastXInput, toastYInput, keybindsTable, hardResetBtn, toastWrap} from './ui.js';
 import {player, buildings, rectsIntersect, totalWeight, invAdd, teleportHome, upgrades, priceFor, buy, sellItem, sellAll, inventoryValue, ASCENSION_BUILDING, ascend} from './player.js';
 import {saveGameToFile, loadGameFromString, saveGameToStorage, loadGameFromStorage, SAVE_KEY} from './save.js';
 
@@ -187,6 +187,11 @@ function draw() {
   } else {
     weightWarned = false;
   }
+
+  const playerCol = Math.floor((player.x + player.w / 2) / TILE);
+  const faded = playerCol < 5;
+  staminaBar.style.opacity = faded ? '0.5' : '1';
+  weightBar.style.opacity = faded ? '0.5' : '1';
 }
 
 function loop() { tick(); draw(); requestAnimationFrame(loop); }
@@ -250,6 +255,26 @@ autosaveRange.oninput = () => {
   refreshAutosaveLabel();
   clearInterval(autosaveHandle);
   autosaveHandle = setInterval(saveGameToStorage, autosaveMs);
+};
+
+let toastX = parseInt(localStorage.getItem('toastX') || '16');
+let toastY = parseInt(localStorage.getItem('toastY') || '16');
+function applyToastPos() {
+  toastWrap.style.left = toastX + 'px';
+  toastWrap.style.top = toastY + 'px';
+}
+applyToastPos();
+toastXInput.value = toastX;
+toastYInput.value = toastY;
+toastXInput.oninput = () => {
+  toastX = parseInt(toastXInput.value || '0');
+  localStorage.setItem('toastX', toastX);
+  applyToastPos();
+};
+toastYInput.oninput = () => {
+  toastY = parseInt(toastYInput.value || '0');
+  localStorage.setItem('toastY', toastY);
+  applyToastPos();
 };
 
 hardResetBtn.onclick = () => {
