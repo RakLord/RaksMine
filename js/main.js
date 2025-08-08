@@ -51,16 +51,14 @@ addEventListener('keyup', e => keys.delete(e.key.toLowerCase()));
 canvas.addEventListener('mousedown', () => mouse.down = true);
 addEventListener('mouseup', () => mouse.down = false);
 
-function tryMine() {
+function getMineTargets() {
   const moving = keys.has(keybinds.left) || keys.has(keybinds.right);
   let dx = 0, dy = 0;
   if (!moving) { dy = 1; }
   else if (lastDir === 'left') dx = -1; else if (lastDir === 'right') dx = 1;
   const cx = player.x + player.w / 2, cy = player.y + player.h / 2;
   const { tx, ty } = worldToTile(cx, cy);
-  const cost = 3;
-  if (player.stamina < cost) return;
-  let mined = false;
+  const targets = [];
   for (let i = 1; i <= player.drill; i++) {
     const x = tx + dx * i, y = ty + dy * i;
     if (x < 0 || y < 0 || x >= MAP_W || y >= MAP_H) continue;
@@ -68,14 +66,23 @@ function tryMine() {
     if (id <= 0) continue;
     const m = MATERIALS[id];
     if (m.hard > player.pickPower) break;
+    targets.push({ x, y });
+  }
+  return { targets, dy };
+}
+
+function tryMine() {
+  const cost = 3;
+  if (player.stamina < cost) return;
+  const { targets, dy } = getMineTargets();
+  if (targets.length === 0) return;
+  for (const { x, y } of targets) {
+    const id = world.get(x, y);
     world.set(x, y, 0);
     invAdd(id, 1);
-    mined = true;
   }
-  if (mined) {
-    player.stamina -= cost;
-    if (dy === 1) player.vy = Math.max(player.vy, 0.5);
-  }
+  player.stamina -= cost;
+  if (dy === 1) player.vy = Math.max(player.vy, 0.5);
 }
 
 function resolveCollisions() {
@@ -166,6 +173,11 @@ function draw() {
     ctx.fillRect(b.x - camera.x, b.y - camera.y, b.w, b.h);
     ctx.fillStyle = '#e5e7eb'; ctx.font = '12px system-ui';
     ctx.fillText(b.name, b.x - camera.x + 2, b.y - camera.y - 4);
+  }
+  const { targets } = getMineTargets();
+  ctx.fillStyle = '#fff';
+  for (const { x, y } of targets) {
+    ctx.fillRect(x * TILE - camera.x + TILE / 2 - 2, y * TILE - camera.y + TILE / 2 - 2, 4, 4);
   }
   ctx.fillStyle = '#f59e0b';
   ctx.fillRect(player.x - camera.x, player.y - camera.y, player.w, player.h);
