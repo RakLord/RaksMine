@@ -42,3 +42,19 @@ export function loadGameFromString(b64) {
     return false;
   }
 }
+
+const SAVE_KEY = 'raksmine-save';
+
+export function saveGameToStorage() {
+  try {
+    localStorage.setItem(SAVE_KEY, serializeGame());
+  } catch (e) {
+    console.error('Failed to save game', e);
+  }
+}
+
+export function loadGameFromStorage() {
+  const data = localStorage.getItem(SAVE_KEY);
+  if (!data) return false;
+  return loadGameFromString(data);
+}
