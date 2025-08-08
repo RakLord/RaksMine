@@ -133,6 +133,20 @@ export function ascend() {
   return true;
 }
 
+export function softReset() {
+  resetPlayerStats();
+  generateWorld(player.ascensions, player.equippedPages);
+  buildings.length = 0;
+  buildings.push(...BASE_BUILDINGS);
+  if (player.ascensionUnlocked || player.ascensions > 0) {
+    player.ascensionUnlocked = true;
+    buildings.push({ ...ASCENSION_BUILDING });
+  }
+  teleportHome();
+  say('The world has been refreshed.');
+  return true;
+}
+
 export const upgrades = {
   pickaxe:  { key: 'pickPower', name: 'Pickaxe',           desc: 'Mine harder materials', step: 1,    max: 10,  base: 50,  scale: 1.6,  baseLevel: 0 },
   boots:    { key: 'speed',     name: 'Boots',             desc: 'Move faster',          step: 0.10, max: 2.0, base: 80,  scale: 1.5,  baseLevel: 0.3 },

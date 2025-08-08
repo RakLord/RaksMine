@@ -18,6 +18,7 @@ export const loadBtn = document.getElementById('loadBtn');
 export const loadInput = document.getElementById('loadInput');
 export const ascendModal = document.getElementById('ascendModal');
 export const ascendBtn = document.getElementById('ascendBtn');
+export const softResetBtn = document.getElementById('softResetBtn');
 export const settingsBtn = document.getElementById('settingsBtn');
 export const settingsModal = document.getElementById('settingsModal');
 export const settingsClose = document.getElementById('settingsClose');

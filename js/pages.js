@@ -111,7 +111,8 @@ export function setupPages(player) {
         const highest = owned ? Math.max(...Object.keys(owned).map(Number)) : 0;
         const known = total > 0;
         const merge = canMerge(owned);
-        return `<div data-id='${p.id}' class='pageTile border border-slate-700 rounded-lg p-2 ${known ? 'cursor-pointer' : ''}'>` +
+        const equipped = player.equippedPages[p.id];
+        return `<div data-id='${p.id}' class='pageTile border border-slate-700 rounded-lg p-2 ${known ? 'cursor-pointer' : ''} ${equipped ? 'bg-slate-700' : ''}'>` +
           `<div class='font-medium'>${known ? p.name : 'Unknown'}</div>` +
           `<div class='text-xs text-slate-400'>${p.rarity}</div>` +
           `<div class='text-xs'>Lv ${highest}</div>` +
