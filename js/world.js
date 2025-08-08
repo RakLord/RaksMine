@@ -1,5 +1,6 @@
 import {MAP_W, MAP_H, TILE} from './config.js';
 import {MATERIALS} from './materials.js';
+import {applyPageModifiers} from './pages.js';
 
 export const world = {
   tiles: new Uint8Array(MAP_W * MAP_H),
@@ -13,14 +14,16 @@ export const world = {
   }
 };
 
-export function generateWorld(ascensionLevel = 0) {
+export function generateWorld(ascensionLevel = 0, equippedPages = {}) {
+  const mats = MATERIALS.map(m => ({ ...m }));
+  applyPageModifiers(mats, equippedPages);
   for (let y = 0; y < MAP_H; y++) {
     for (let x = 0; x < MAP_W; x++) {
       if (y < 5) { world.set(x, y, 0); continue; }
       if (y === 5) { world.set(x, y, 1); continue; }
       if (y < 22) { world.set(x, y, 2); continue; }
 
-      const candidates = MATERIALS.filter(m => m.rarity && y >= (m.minDepth || 0)
+      const candidates = mats.filter(m => m.rarity && y >= (m.minDepth || 0)
         && (!m.maxDepth || y <= m.maxDepth)
         && ascensionLevel >= (m.ascension || 0));
       const total = candidates.reduce((s, m) => s + m.rarity, 0);

@@ -2,6 +2,7 @@ import {TILE, MAP_W} from './config.js';
 import {MATERIALS} from './materials.js';
 import {world, generateWorld} from './world.js';
 import {say} from './ui.js';
+import {awardRandomPage} from './pages.js';
 
 export const SPAWN_X = TILE * 10;
 
@@ -21,6 +22,8 @@ const BASE_PLAYER = {
   speed: 0.3,
   drill: 1,
   inventory: [],
+  pages: {},
+  equippedPages: {},
   ascensions: 0,
   ascensionUnlocked: false,
   holdToMine: false
@@ -106,8 +109,8 @@ export function teleportHome() {
 }
 
 function resetPlayerStats() {
-  const { ascensions, ascensionUnlocked, holdToMine } = player;
-  Object.assign(player, { ...BASE_PLAYER, ascensions, ascensionUnlocked, holdToMine });
+  const { ascensions, ascensionUnlocked, holdToMine, pages, equippedPages } = player;
+  Object.assign(player, { ...BASE_PLAYER, ascensions, ascensionUnlocked, holdToMine, pages, equippedPages });
   player.inventory = [];
 }
 
@@ -116,7 +119,7 @@ export function ascend() {
   player.ascensions++;
   player.cash = 0;
   resetPlayerStats();
-  generateWorld(player.ascensions);
+  generateWorld(player.ascensions, player.equippedPages);
   buildings.length = 0;
   buildings.push(...BASE_BUILDINGS);
   if (player.ascensionUnlocked || player.ascensions > 0) {
@@ -124,7 +127,9 @@ export function ascend() {
     buildings.push({ ...ASCENSION_BUILDING });
   }
   teleportHome();
+  const pg = awardRandomPage(player);
   say('The world has been reborn.');
+  if (pg) say(`You received a ${pg.rarity} Page: ${pg.name}`);
   return true;
 }
 
