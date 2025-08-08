@@ -4,6 +4,7 @@ import {world, worldToTile, isSolidAt, generateWorld} from './world.js';
 import {canvas, ctx, statsEl, say, closeAllModals, closeModal, isUIOpen, openInventory, openShop, openMarket, marketModal, saveBtn, loadBtn, loadInput, staminaBar, staminaFill, weightBar, weightFill, openModal, ascendModal, ascendBtn, softResetBtn, settingsBtn, settingsModal, autosaveRange, autosaveLabel, toastXInput, toastYInput, keybindsTable, hardResetBtn, toastWrap} from './ui.js';
 import {player, buildings, rectsIntersect, totalWeight, invAdd, teleportHome, upgrades, priceFor, buy, sellItem, sellAll, inventoryValue, ASCENSION_BUILDING, ascend, softReset} from './player.js';
 import {setupPages} from './pages.js';
+import {setupAscensionShop} from './ascension.js';
 import {saveGameToFile, loadGameFromString, saveGameToStorage, loadGameFromStorage, SAVE_KEY} from './save.js';
 
 generateWorld(player.ascensions, player.equippedPages);
@@ -11,6 +12,7 @@ if (loadGameFromStorage()) {
   say('Game loaded');
 }
 setupPages(player);
+setupAscensionShop(player);
 
 const keys = new Set();
 let mouse = { down: false };

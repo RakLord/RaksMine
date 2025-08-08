@@ -18,6 +18,9 @@ export const loadBtn = document.getElementById('loadBtn');
 export const loadInput = document.getElementById('loadInput');
 export const ascendModal = document.getElementById('ascendModal');
 export const ascendBtn = document.getElementById('ascendBtn');
+export const ascShopBtn = document.getElementById('ascShopBtn');
+export const ascShopModal = document.getElementById('ascShopModal');
+export const ascShopBody = document.getElementById('ascShopBody');
 export const softResetBtn = document.getElementById('softResetBtn');
 export const settingsBtn = document.getElementById('settingsBtn');
 export const settingsModal = document.getElementById('settingsModal');
@@ -33,6 +36,7 @@ document.getElementById('shopClose').onclick = () => closeAllModals();
 document.getElementById('invClose').onclick = () => closeAllModals();
 document.getElementById('marketClose').onclick = () => closeAllModals();
 document.getElementById('ascendClose').onclick = () => closeAllModals();
+document.getElementById('ascShopClose').onclick = () => closeAllModals();
 settingsClose.onclick = () => closeAllModals();
 
 export function say(text) {
@@ -49,8 +53,8 @@ export function say(text) {
 
 export function openModal(el) { el.classList.remove('hidden'); el.classList.add('flex'); }
 export function closeModal(el) { el.classList.add('hidden'); el.classList.remove('flex'); }
-export function closeAllModals() { closeModal(shopModal); closeModal(invModal); closeModal(marketModal); closeModal(ascendModal); closeModal(settingsModal); }
-export function isUIOpen() { return !shopModal.classList.contains('hidden') || !invModal.classList.contains('hidden') || !marketModal.classList.contains('hidden') || !ascendModal.classList.contains('hidden') || !settingsModal.classList.contains('hidden'); }
+export function closeAllModals() { closeModal(shopModal); closeModal(invModal); closeModal(marketModal); closeModal(ascendModal); closeModal(ascShopModal); closeModal(settingsModal); }
+export function isUIOpen() { return !shopModal.classList.contains('hidden') || !invModal.classList.contains('hidden') || !marketModal.classList.contains('hidden') || !ascendModal.classList.contains('hidden') || !ascShopModal.classList.contains('hidden') || !settingsModal.classList.contains('hidden'); }
 
 export function renderInventory(player, MATERIALS) {
   const counts = new Map();
