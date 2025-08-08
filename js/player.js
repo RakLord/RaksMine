@@ -25,6 +25,7 @@ export const player = {
 export const buildings = [
   { x: TILE * 8,  y: TILE * 5 - TILE * 2, w: TILE * 3, h: TILE * 2, kind: 'shop',    name: 'Shop' },
   { x: TILE * 13, y: TILE * 5 - TILE * 2, w: TILE * 3, h: TILE * 2, kind: 'builder', name: 'Builder' },
+  { x: TILE * 18, y: TILE * 5 - TILE * 2, w: TILE * 3, h: TILE * 2, kind: 'market',  name: 'Market' },
 ];
 
 export function rectsIntersect(a, b) {
@@ -53,18 +54,23 @@ export function invTrimTo(cap) {
   player.inventory = items.filter(i => i.qty > 0).map(({ id, qty }) => ({ id, qty }));
 }
 
-export function trySell() {
-  const shop = buildings.find(b => b.kind === 'shop');
-  if (shop && rectsIntersect(player, shop)) sellAll();
-  else say('Stand on the shop to sell.');
+export function inventoryValue() {
+  return player.inventory.reduce((s, it) => s + MATERIALS[it.id].value * it.qty, 0);
+}
+
+export function sellItem(id) {
+  const idx = player.inventory.findIndex(it => it.id === id);
+  if (idx === -1) { say('Item not found.'); return; }
+  const it = player.inventory[idx];
+  const gained = MATERIALS[id].value * it.qty;
+  player.cash += gained;
+  player.inventory.splice(idx, 1);
+  say(`Sold for $${gained}`);
 }
 
 export function sellAll() {
-  if (!player.inventory.length) { say('Inventory empty.'); return; }
-  let gained = 0;
-  for (const it of player.inventory) {
-    gained += MATERIALS[it.id].value * it.qty;
-  }
+  const gained = inventoryValue();
+  if (gained === 0) { say('Inventory empty.'); return; }
   player.cash += gained;
   player.inventory = [];
   say(`Sold for $${gained}`);

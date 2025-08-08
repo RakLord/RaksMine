@@ -1,8 +1,8 @@
 import {TILE, MAP_W, MAP_H, MOVE_ACC, MAX_HSPEED, GRAV, FRICTION} from './config.js';
 import {MATERIALS} from './materials.js';
 import {world, worldToTile, isSolidAt} from './world.js';
-import {canvas, ctx, statsEl, say, closeAllModals, isUIOpen, openInventory, openShop} from './ui.js';
-import {player, buildings, rectsIntersect, totalWeight, invAdd, teleportHome, upgrades, priceFor, buy} from './player.js';
+import {canvas, ctx, statsEl, say, closeAllModals, isUIOpen, openInventory, openShop, openMarket, renderMarket, marketModal} from './ui.js';
+import {player, buildings, rectsIntersect, totalWeight, invAdd, teleportHome, upgrades, priceFor, buy, sellItem, sellAll, inventoryValue} from './player.js';
 
 const keys = new Set();
 let mouse = { down: false };
@@ -61,16 +61,26 @@ function resolveCollisions() {
 const camera = { x: 0, y: 0 };
 
 function tick() {
+  if (keys.has('f')) {
+    if (isUIOpen()) {
+      if (!marketModal.classList.contains('hidden')) {
+        sellAll();
+        renderMarket(player, MATERIALS, sellItem, sellAll, inventoryValue);
+      }
+    } else {
+      const market = buildings.find(b => b.kind === 'market');
+      const shop = buildings.find(b => b.kind === 'shop');
+      if (market && rectsIntersect(player, market)) openMarket(player, MATERIALS, sellItem, sellAll, inventoryValue);
+      else if (shop && rectsIntersect(player, shop)) openShop(player, upgrades, priceFor, buy);
+      else say('No one nearby.');
+    }
+    keys.delete('f');
+  }
+
   if (!isUIOpen()) {
     if (keys.has('a')) { player.vx -= MOVE_ACC * player.speed; player.facing = -1; }
     if (keys.has('d')) { player.vx += MOVE_ACC * player.speed; player.facing = 1; }
     if (keys.has(' ')) { tryMine(); keys.delete(' '); }
-    if (keys.has('f')) {
-      const shop = buildings.find(b => b.kind === 'shop');
-      if (shop && rectsIntersect(player, shop)) openShop(player, upgrades, priceFor, buy);
-      else say('No one nearby.');
-      keys.delete('f');
-    }
     if (keys.has('e')) { openInventory(player, MATERIALS); keys.delete('e'); }
     if (keys.has('r')) { teleportHome(); keys.delete('r'); }
   }
@@ -97,7 +107,7 @@ function draw() {
     ctx.fillRect(tx * TILE - camera.x, ty * TILE - camera.y, TILE, TILE);
   }
   for (const b of buildings) {
-    ctx.fillStyle = b.kind === 'shop' ? '#2563eb' : '#16a34a';
+    ctx.fillStyle = b.kind === 'shop' ? '#2563eb' : b.kind === 'market' ? '#9333ea' : '#16a34a';
     ctx.fillRect(b.x - camera.x, b.y - camera.y, b.w, b.h);
     ctx.fillStyle = '#e5e7eb'; ctx.font = '12px system-ui';
     ctx.fillText(b.name, b.x - camera.x + 2, b.y - camera.y - 4);
