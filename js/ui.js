@@ -6,9 +6,13 @@ export const shopModal = document.getElementById('shopModal');
 const shopBody = document.getElementById('shopBody');
 export const invModal = document.getElementById('invModal');
 const invGrid = document.getElementById('invGrid');
+export const marketModal = document.getElementById('marketModal');
+const marketBody = document.getElementById('marketBody');
+const marketTotal = document.getElementById('marketTotal');
 
 document.getElementById('shopClose').onclick = () => closeAllModals();
 document.getElementById('invClose').onclick = () => closeAllModals();
+document.getElementById('marketClose').onclick = () => closeAllModals();
 
 export function say(text) {
   const el = document.createElement('div');
@@ -24,8 +28,8 @@ export function say(text) {
 
 export function openModal(el) { el.classList.remove('hidden'); el.classList.add('flex'); }
 export function closeModal(el) { el.classList.add('hidden'); el.classList.remove('flex'); }
-export function closeAllModals() { closeModal(shopModal); closeModal(invModal); }
-export function isUIOpen() { return !shopModal.classList.contains('hidden') || !invModal.classList.contains('hidden'); }
+export function closeAllModals() { closeModal(shopModal); closeModal(invModal); closeModal(marketModal); }
+export function isUIOpen() { return !shopModal.classList.contains('hidden') || !invModal.classList.contains('hidden') || !marketModal.classList.contains('hidden'); }
 
 export function renderInventory(player, MATERIALS) {
   const counts = new Map();
@@ -80,4 +84,29 @@ export function renderShop(player, upgrades, priceFor, buy) {
 export function openShop(player, upgrades, priceFor, buy) {
   renderShop(player, upgrades, priceFor, buy);
   openModal(shopModal);
+}
+
+export function renderMarket(player, MATERIALS, sellItem, sellAll, inventoryValue) {
+  marketBody.innerHTML = player.inventory.map(it => {
+    const m = MATERIALS[it.id];
+    const total = m.value * it.qty;
+    return `
+      <div class='flex items-center justify-between gap-3 rounded-xl border border-slate-700 p-3'>
+        <div>
+          <div class='font-medium'>${m.name}</div>
+          <div class='text-xs text-slate-400'>x${it.qty} @ $${m.value} = $${total}</div>
+        </div>
+        <button data-id='${it.id}' class='sell px-3 py-1.5 rounded-md border border-slate-600'>Sell</button>
+      </div>`;
+  }).join('');
+  marketBody.querySelectorAll('button.sell').forEach(btn => {
+    btn.onclick = () => { sellItem(+btn.getAttribute('data-id')); renderMarket(player, MATERIALS, sellItem, sellAll, inventoryValue); };
+  });
+  marketTotal.textContent = '$' + inventoryValue();
+}
+
+export function openMarket(player, MATERIALS, sellItem, sellAll, inventoryValue) {
+  renderMarket(player, MATERIALS, sellItem, sellAll, inventoryValue);
+  document.getElementById('marketSellAll').onclick = () => { sellAll(); renderMarket(player, MATERIALS, sellItem, sellAll, inventoryValue); };
+  openModal(marketModal);
 }
