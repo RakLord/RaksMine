@@ -162,7 +162,7 @@ function draw() {
     ctx.fillRect(tx * TILE - camera.x, ty * TILE - camera.y, TILE, TILE);
   }
   for (const b of buildings) {
-    ctx.fillStyle = b.kind === 'shop' ? '#2563eb' : b.kind === 'market' ? '#9333ea' : '#16a34a';
+    ctx.fillStyle = b.kind === 'shop' ? '#2563eb' : b.kind === 'market' ? '#9333ea' : '#1fa94c';
     ctx.fillRect(b.x - camera.x, b.y - camera.y, b.w, b.h);
     ctx.fillStyle = '#e5e7eb'; ctx.font = '12px system-ui';
     ctx.fillText(b.name, b.x - camera.x + 2, b.y - camera.y - 4);
