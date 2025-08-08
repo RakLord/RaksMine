@@ -1,4 +1,4 @@
-import {TILE, MAP_W, MAP_H, MOVE_ACC, MAX_HSPEED, GRAV, FRICTION} from './config.js';
+import {TILE, MAP_W, MAP_H, MOVE_ACC, GRAV, FRICTION} from './config.js';
 import {MATERIALS} from './materials.js';
 import {world, worldToTile, isSolidAt, generateWorld} from './world.js';
 import {canvas, ctx, statsEl, say, closeAllModals, closeModal, isUIOpen, openInventory, openShop, openMarket, marketModal, saveBtn, loadBtn, loadInput, staminaBar, staminaFill, weightBar, weightFill, openModal, ascendModal, ascendBtn, settingsBtn, settingsModal, autosaveRange, autosaveLabel, toastXInput, toastYInput, keybindsTable, hardResetBtn, toastWrap, ascendCostText} from './ui.js';
@@ -16,12 +16,14 @@ setupAscensionShop(player);
 
 const keys = new Set();
 let mouse = { down: false };
-let lastDir = 'right';
+let mineDir = 'down';
 let weightWarned = false;
 
 const DEFAULT_KEYBINDS = {
   left: 'a',
   right: 'd',
+  down: 's',
+  up: 'w',
   mine: ' ',
   inventory: 'e',
   teleport: 'r',
@@ -30,12 +32,15 @@ const DEFAULT_KEYBINDS = {
 const keyDescriptions = {
   left: 'Move Left',
   right: 'Move Right',
+  down: 'Aim Down',
+  up: 'Aim Up',
   mine: 'Mine',
   inventory: 'Open Inventory',
   teleport: 'Teleport Home',
   interact: 'Interact'
 };
-let keybinds = JSON.parse(localStorage.getItem('keybinds') || 'null') || { ...DEFAULT_KEYBINDS };
+let keybinds = JSON.parse(localStorage.getItem('keybinds') || 'null') || {};
+keybinds = { ...DEFAULT_KEYBINDS, ...keybinds };
 
 function saveKeybinds() { localStorage.setItem('keybinds', JSON.stringify(keybinds)); }
 
@@ -47,8 +52,10 @@ addEventListener('keydown', e => {
   if (k === ' ' && e.repeat && !player.holdToMine) return;
   const lk = k.toLowerCase();
   keys.add(lk);
-  if (lk === keybinds.left) lastDir = 'left';
-  if (lk === keybinds.right) lastDir = 'right';
+  if (lk === keybinds.left) mineDir = 'left';
+  if (lk === keybinds.right) mineDir = 'right';
+  if (lk === keybinds.down) mineDir = 'down';
+  if (lk === keybinds.up && player.mineUp) mineDir = 'up';
 });
 
 addEventListener('keyup', e => keys.delete(e.key.toLowerCase()));
@@ -56,10 +63,11 @@ canvas.addEventListener('mousedown', () => mouse.down = true);
 addEventListener('mouseup', () => mouse.down = false);
 
 function getMineTargets() {
-  const moving = keys.has(keybinds.left) || keys.has(keybinds.right);
   let dx = 0, dy = 0;
-  if (!moving) { dy = 1; }
-  else if (lastDir === 'left') dx = -1; else if (lastDir === 'right') dx = 1;
+  if (mineDir === 'left') dx = -1;
+  else if (mineDir === 'right') dx = 1;
+  else if (mineDir === 'up' && player.mineUp) dy = -1;
+  else dy = 1;
   const cx = player.x + player.w / 2, cy = player.y + player.h / 2;
   const { tx, ty } = worldToTile(cx, cy);
   const targets = [];
@@ -146,8 +154,7 @@ function tick() {
     if (keys.has(keybinds.teleport)) { teleportHome(); keys.delete(keybinds.teleport); }
   }
 
-  player.vy += GRAV; if (player.vy > 18) player.vy = 18;
-  player.vx = Math.max(-MAX_HSPEED * player.speed, Math.min(MAX_HSPEED * player.speed, player.vx));
+  player.vy += GRAV;
   player.vx *= FRICTION;
   resolveCollisions();
 

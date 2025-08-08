@@ -10,6 +10,7 @@ export const shopModal = document.getElementById('shopModal');
 const shopBody = document.getElementById('shopBody');
 export const invModal = document.getElementById('invModal');
 const invGrid = document.getElementById('invGrid');
+const invTotal = document.getElementById('invTotal');
 export const marketModal = document.getElementById('marketModal');
 const marketBody = document.getElementById('marketBody');
 const marketTotal = document.getElementById('marketTotal');
@@ -62,16 +63,20 @@ export function renderInventory(player, MATERIALS) {
     counts.set(it.id, (counts.get(it.id) || 0) + it.qty);
   }
   const entries = Array.from(counts.entries());
+  let totalVal = 0;
   const cells = entries.map(([id, qty]) => {
     const m = MATERIALS[id];
+    const total = m.value * qty;
+    totalVal += total;
     return `<div class='border border-slate-700 rounded-lg p-2 flex flex-col items-start'>
       <div class='w-5 h-5 rounded-sm mb-1' style='background:${m.color || "transparent"}'></div>
       <div class='text-xs font-medium'>${m.name}</div>
-      <div class='text-[11px] text-slate-400'>x${qty}</div>
+      <div class='text-[11px] text-slate-400'>x${qty} @ $${m.value} = $${total}</div>
     </div>`;
   });
   while (cells.length < 16) cells.push(`<div class='border border-dashed border-slate-700 rounded-lg p-2 h-[52px]'></div>`);
   invGrid.innerHTML = cells.join('');
+  invTotal.textContent = 'Total Value: $' + totalVal;
 }
 
 export function openInventory(player, MATERIALS) {

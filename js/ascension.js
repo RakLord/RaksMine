@@ -26,6 +26,14 @@ export const ASCENSION_UPGRADES = [
     tier: 1,
     requires: ['drill_range'],
     apply: p => { p.staminaRegen = (p.staminaRegen || 1) * 2; }
+  },
+  {
+    id: 'mine_up',
+    name: 'Unlock Up Mining',
+    desc: 'Allows mining upward.',
+    cost: 2,
+    tier: 0,
+    apply: p => { p.mineUp = true; }
   }
 ];
 
