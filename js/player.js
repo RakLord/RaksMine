@@ -3,6 +3,7 @@ import {MATERIALS} from './materials.js';
 import {world, generateWorld} from './world.js';
 import {say} from './ui.js';
 import {awardRandomPage} from './pages.js';
+import {applyAscensionUpgrades} from './ascension.js';
 
 export const SPAWN_X = TILE * 10;
 
@@ -26,6 +27,9 @@ const BASE_PLAYER = {
   equippedPages: {},
   ascensions: 0,
   ascensionUnlocked: false,
+  ascensionPoints: 0,
+  ascensionUpgrades: {},
+  staminaRegen: 1,
   holdToMine: false
 };
 
@@ -109,14 +113,16 @@ export function teleportHome() {
 }
 
 function resetPlayerStats() {
-  const { ascensions, ascensionUnlocked, holdToMine, pages, equippedPages } = player;
-  Object.assign(player, { ...BASE_PLAYER, ascensions, ascensionUnlocked, holdToMine, pages, equippedPages });
+  const { ascensions, ascensionUnlocked, holdToMine, pages, equippedPages, ascensionPoints, ascensionUpgrades } = player;
+  Object.assign(player, { ...BASE_PLAYER, ascensions, ascensionUnlocked, holdToMine, pages, equippedPages, ascensionPoints, ascensionUpgrades });
   player.inventory = [];
+  applyAscensionUpgrades(player);
 }
 
 export function ascend() {
   if (player.cash < 10000) { say('Need $10000 to ascend.'); return false; }
   player.ascensions++;
+  player.ascensionPoints += player.ascensions;
   player.cash = 0;
   resetPlayerStats();
   generateWorld(player.ascensions, player.equippedPages);
@@ -129,6 +135,7 @@ export function ascend() {
   teleportHome();
   const pg = awardRandomPage(player);
   say('The world has been reborn.');
+  say('Gained ' + player.ascensions + ' ascension points.');
   if (pg) say(`You received a ${pg.rarity} Page: ${pg.name}`);
   return true;
 }
