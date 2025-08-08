@@ -35,7 +35,7 @@ export function loadGameFromString(b64) {
     player.ascensionPoints = state.player.ascensionPoints || 0;
     player.buildingProgress = state.player.buildingProgress || {};
     player.forgeLevel = state.player.forgeLevel || 0;
-    player.forgeQueue = state.player.forgeQueue || [];
+    player.forgeQueue = (state.player.forgeQueue || []).map(j => ({ total: j.total || j.time || 0, ...j }));
     player.warehouse = state.player.warehouse || [];
     buildings.length = 0;
     if (Array.isArray(state.buildings)) {
