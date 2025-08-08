@@ -10,6 +10,7 @@
   #ui{position:fixed;top:8px;left:8px;right:8px;display:flex;gap:8px;align-items:center;z-index:10}
   .panel{background:#111827;border:1px solid #1f2937;border-radius:8px;padding:8px 10px;box-shadow:0 2px 8px rgba(0,0,0,.35)}
   #game{display:block;width:100vw;height:100vh;image-rendering:pixelated}
+  .enchant{font-family:monospace}
 </style>
 </head>
 <body>
@@ -79,7 +80,7 @@
         <button id="ascendClose" class="px-2 py-1 text-sm rounded-md border border-slate-700 hover:bg-slate-800">Close</button>
       </div>
         <div class="p-4 space-y-3 text-sm">
-          <p>Reset the world for new opportunities. Cost: $10,000. If you can't afford it, you may ascend for no gain.</p>
+          <p>Reset the world for new opportunities. Cost: $<span id="ascendCostText"></span>. If you can't afford it, you may ascend for no gain.</p>
           <button id="ascendBtn" class="px-3 py-1.5 rounded-md border border-slate-600 w-full">Ascend</button>
           <button id="ascShopBtn" class="px-3 py-1.5 rounded-md border border-slate-600 w-full">Ascension Shop</button>
         </div>

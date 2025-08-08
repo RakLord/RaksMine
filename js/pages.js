@@ -3,6 +3,14 @@ import { MATERIALS } from './materials.js';
 
 export const MERGE_COST = 5;
 
+const ENCHANT_CHARS = Array.from('ᔑʖᓵ↸ᒷ⎓⊣⍑╎⋮ꖌꖎᒲリ𝙹!¡ᑑ∷ᓭℸ⚍⍊∴ꖝ||⨅');
+
+function randomEnchant(len = 5) {
+  let s = '';
+  for (let i = 0; i < len; i++) s += ENCHANT_CHARS[Math.floor(Math.random() * ENCHANT_CHARS.length)];
+  return s;
+}
+
 function rarityInfo(value) {
   if (value >= 15) return { rarity: 'Common', weight: 60 };
   if (value >= 8) return { rarity: 'Uncommon', weight: 30 };
@@ -106,7 +114,8 @@ export function setupPages(player) {
   const modal = document.getElementById('pagesModal');
   const body = document.getElementById('pagesBody');
   const closeBtn = document.getElementById('pagesClose');
-  closeBtn.onclick = () => closeModal(modal);
+  let mysticInterval;
+  closeBtn.onclick = () => { if (mysticInterval) clearInterval(mysticInterval); closeModal(modal); };
 
   function renderList() {
     body.innerHTML = `<div class='grid grid-cols-3 gap-2'>` +
@@ -117,20 +126,28 @@ export function setupPages(player) {
         const known = total > 0;
         const merge = canMerge(owned);
         const equipped = player.equippedPages[p.id];
-        return `<div data-id='${p.id}' class='pageTile border border-slate-700 rounded-lg p-2 ${known ? 'cursor-pointer' : ''} ${equipped ? 'bg-slate-700' : ''}'>` +
-          `<div class='font-medium'>${known ? p.name : 'Unknown'}</div>` +
+        return `<div data-id='${p.id}' class='pageTile border ${known ? 'border-emerald-500' : 'border-slate-700'} rounded-lg p-2 ${known ? 'cursor-pointer' : ''} ${equipped ? 'bg-slate-700' : ''}'>` +
+          `<div class='font-medium ${known ? '' : 'unknownName enchant'}'>${known ? p.name : randomEnchant()}</div>` +
           `<div class='text-xs text-slate-400'>${p.rarity}</div>` +
           `<div class='text-xs'>Lv ${highest}</div>` +
           `<div class='text-xs'>x${total}</div>` +
           (merge ? `<div class='text-[10px] text-yellow-400 mt-1'>Merge!</div>` : '') +
           `</div>`;
       }).join('') + `</div>`;
+    if (mysticInterval) clearInterval(mysticInterval);
+    const unknownEls = body.querySelectorAll('.unknownName');
+    if (unknownEls.length) {
+      mysticInterval = setInterval(() => {
+        unknownEls.forEach(el => el.textContent = randomEnchant());
+      }, 200);
+    }
     body.querySelectorAll('.pageTile').forEach(el => {
       el.onclick = () => {
         const id = el.getAttribute('data-id');
         const owned = player.pages[id];
         const total = owned ? Object.values(owned).reduce((a, b) => a + b, 0) : 0;
         if (!total) return;
+        if (mysticInterval) clearInterval(mysticInterval);
         renderDetail(id);
       };
     });
@@ -154,7 +171,7 @@ export function setupPages(player) {
         <button id='pagesEquip' class='px-3 py-1 rounded-md border border-slate-600'>${equipped ? 'Unequip' : 'Equip Lv ' + highest}</button>
       </div>
     `;
-    body.querySelector('#pagesBack').onclick = renderList;
+    body.querySelector('#pagesBack').onclick = () => { renderList(); };
     body.querySelector('#pagesMerge').onclick = () => {
       if (mergePossible) {
         mergePage(player, id);

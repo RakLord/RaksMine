@@ -119,14 +119,19 @@ function resetPlayerStats() {
   applyAscensionUpgrades(player);
 }
 
+export function ascensionCost() {
+  return 10000 * Math.pow(player.ascensions + 1, 2);
+}
+
 export function ascend() {
-  if (player.cash < 10000) {
+  const cost = ascensionCost();
+  if (player.cash < cost) {
     if (confirm('Not enough money to ascend. Ascend for no gain?')) {
       softReset();
       say('Ascended for no gain.');
       return true;
     } else {
-      say('Need $10000 to ascend.');
+      say('Need $' + cost.toLocaleString() + ' to ascend.');
       return false;
     }
   }
