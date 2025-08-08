@@ -1,42 +1,47 @@
 import { openModal, closeModal, say } from './ui.js';
+import { MATERIALS } from './materials.js';
 
 export const MERGE_COST = 5;
 
-export const PAGES = [
-  {
-    id: 'iron_spawn',
-    name: 'Iron Lore',
-    rarity: 'Common',
-    weight: 60,
-    desc: 'Increase iron spawn rate by 10% per level.',
-    apply: (mats, lvl) => {
-      const iron = mats.find(m => m.id === 5);
-      if (iron) iron.rarity = Math.round(iron.rarity * (1 + 0.1 * lvl));
-    }
-  },
-  {
-    id: 'iron_depth',
-    name: 'Iron Mapping',
-    rarity: 'Uncommon',
-    weight: 30,
-    desc: 'Reduce iron minimum depth by 5 per level.',
-    apply: (mats, lvl) => {
-      const iron = mats.find(m => m.id === 5);
-      if (iron) iron.minDepth = Math.max(0, (iron.minDepth || 0) - 5 * lvl);
-    }
-  },
-  {
-    id: 'gold_spawn',
-    name: 'Gold Scriptures',
-    rarity: 'Rare',
-    weight: 10,
-    desc: 'Increase gold spawn rate by 10% per level.',
-    apply: (mats, lvl) => {
-      const gold = mats.find(m => m.id === 6);
-      if (gold) gold.rarity = Math.round(gold.rarity * (1 + 0.1 * lvl));
-    }
+function rarityInfo(value) {
+  if (value >= 15) return { rarity: 'Common', weight: 60 };
+  if (value >= 8) return { rarity: 'Uncommon', weight: 30 };
+  return { rarity: 'Rare', weight: 10 };
+}
+
+function generateOrePages() {
+  const pages = [];
+  const ores = MATERIALS.filter(m => m.ore);
+  for (const ore of ores) {
+    const slug = ore.name.toLowerCase().replace(/\s+/g, '_');
+    const info = rarityInfo(ore.rarity || 0);
+    pages.push({
+      id: `${slug}_spawn`,
+      name: `${ore.name} Lore`,
+      rarity: info.rarity,
+      weight: info.weight,
+      desc: `Increase ${ore.name.toLowerCase()} spawn rate by 10% per level.`,
+      apply: (mats, lvl) => {
+        const mat = mats.find(m => m.id === ore.id);
+        if (mat) mat.rarity = Math.round(mat.rarity * (1 + 0.1 * lvl));
+      }
+    });
+    pages.push({
+      id: `${slug}_depth`,
+      name: `${ore.name} Mapping`,
+      rarity: info.rarity,
+      weight: info.weight,
+      desc: `Reduce ${ore.name.toLowerCase()} minimum depth by 5 per level.`,
+      apply: (mats, lvl) => {
+        const mat = mats.find(m => m.id === ore.id);
+        if (mat) mat.minDepth = Math.max(0, (mat.minDepth || 0) - 5 * lvl);
+      }
+    });
   }
-];
+  return pages;
+}
+
+export const PAGES = generateOrePages();
 
 const PAGE_MAP = Object.fromEntries(PAGES.map(p => [p.id, p]));
 

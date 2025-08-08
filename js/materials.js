@@ -4,10 +4,10 @@ export const MATERIALS = [
   {id:2, name:'Dirt',    color:'#7b5134', solid:true,  hard:1, value:0,  weight:1},
   // Stone and ores
   {id:3, name:'Stone',   color:'#808a99', solid:true,  hard:2, value:1,  weight:2, rarity:80, minDepth:22},
-  {id:4, name:'Copper',  color:'#c67c29', solid:true,  hard:3, value:5,  weight:3, rarity:20, minDepth:30},
-  {id:5, name:'Iron',    color:'#8d8d92', solid:true,  hard:4, value:10, weight:4, rarity:10, minDepth:60},
-  {id:6, name:'Gold',    color:'#ffcc33', solid:true,  hard:6, value:30, weight:6, rarity:5,  minDepth:120},
-  {id:7, name:'Tin',     color:'#c4d5d5', solid:true,  hard:3, value:8,  weight:3, rarity:15, minDepth:40,  ascension:1},
-  {id:8, name:'Diamond', color:'#00d0ff', solid:true,  hard:9, value:100,weight:1, rarity:1,  minDepth:300, ascension:1}
+  {id:4, name:'Copper',  color:'#c67c29', solid:true,  hard:3, value:5,  weight:3, rarity:20, minDepth:30,  ore:true},
+  {id:5, name:'Iron',    color:'#8d8d92', solid:true,  hard:4, value:10, weight:4, rarity:10, minDepth:60,  ore:true},
+  {id:6, name:'Gold',    color:'#ffcc33', solid:true,  hard:6, value:30, weight:6, rarity:5,  minDepth:120, ore:true},
+  {id:7, name:'Tin',     color:'#c4d5d5', solid:true,  hard:3, value:8,  weight:3, rarity:15, minDepth:40,  ascension:1, ore:true},
+  {id:8, name:'Diamond', color:'#00d0ff', solid:true,  hard:9, value:100,weight:1, rarity:1,  minDepth:300, ascension:1, ore:true}
 ];
 
