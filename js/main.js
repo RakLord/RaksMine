@@ -59,7 +59,8 @@ function getMineTargets() {
   const cx = player.x + player.w / 2, cy = player.y + player.h / 2;
   const { tx, ty } = worldToTile(cx, cy);
   const targets = [];
-  for (let i = 1; i <= player.drill; i++) {
+  const drillDist = keys.has('shift') ? 1 : player.drill; // shift -> mine single block
+  for (let i = 1; i <= drillDist; i++) {
     const x = tx + dx * i, y = ty + dy * i;
     if (x < 0 || y < 0 || x >= MAP_W || y >= MAP_H) continue;
     const id = world.get(x, y);
