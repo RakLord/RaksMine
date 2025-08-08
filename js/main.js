@@ -1,8 +1,9 @@
 import {TILE, MAP_W, MAP_H, MOVE_ACC, MAX_HSPEED, GRAV, FRICTION} from './config.js';
 import {MATERIALS} from './materials.js';
 import {world, worldToTile, isSolidAt} from './world.js';
-import {canvas, ctx, statsEl, say, closeAllModals, isUIOpen, openInventory, openShop, openMarket, renderMarket, marketModal} from './ui.js';
+import {canvas, ctx, statsEl, say, closeAllModals, isUIOpen, openInventory, openShop, openMarket, renderMarket, marketModal, saveBtn, loadBtn, loadInput} from './ui.js';
 import {player, buildings, rectsIntersect, totalWeight, invAdd, teleportHome, upgrades, priceFor, buy, sellItem, sellAll, inventoryValue} from './player.js';
+import {saveGameToFile, loadGameFromString} from './save.js';
 
 const keys = new Set();
 let mouse = { down: false };
@@ -127,3 +128,17 @@ function fit() {
   canvas.height = Math.floor(innerHeight * dpr);
 }
 addEventListener('resize', fit); fit();
+
+saveBtn.onclick = () => { saveGameToFile(); say('Game saved'); };
+loadBtn.onclick = () => loadInput.click();
+loadInput.onchange = e => {
+  const file = e.target.files[0];
+  if (!file) return;
+  const reader = new FileReader();
+  reader.onload = () => {
+    if (loadGameFromString(reader.result)) say('Game loaded');
+    else say('Failed to load save');
+  };
+  reader.readAsText(file);
+  loadInput.value = '';
+};

@@ -9,6 +9,9 @@ const invGrid = document.getElementById('invGrid');
 export const marketModal = document.getElementById('marketModal');
 const marketBody = document.getElementById('marketBody');
 const marketTotal = document.getElementById('marketTotal');
+export const saveBtn = document.getElementById('saveBtn');
+export const loadBtn = document.getElementById('loadBtn');
+export const loadInput = document.getElementById('loadInput');
 
 document.getElementById('shopClose').onclick = () => closeAllModals();
 document.getElementById('invClose').onclick = () => closeAllModals();
