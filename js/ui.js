@@ -1,0 +1,83 @@
+export const canvas = document.getElementById('game');
+export const ctx = canvas.getContext('2d');
+export const statsEl = document.getElementById('stats');
+const toastWrap = document.getElementById('toasts');
+export const shopModal = document.getElementById('shopModal');
+const shopBody = document.getElementById('shopBody');
+export const invModal = document.getElementById('invModal');
+const invGrid = document.getElementById('invGrid');
+
+document.getElementById('shopClose').onclick = () => closeAllModals();
+document.getElementById('invClose').onclick = () => closeAllModals();
+
+export function say(text) {
+  const el = document.createElement('div');
+  el.className = 'pointer-events-auto select-none bg-slate-900/95 border border-slate-700 shadow-lg rounded-lg px-3 py-2 text-sm flex items-center gap-2';
+  el.textContent = text;
+  toastWrap.appendChild(el);
+  setTimeout(() => {
+    el.style.transition = 'opacity .25s ease';
+    el.style.opacity = '0';
+    setTimeout(() => el.remove(), 260);
+  }, 2200);
+}
+
+export function openModal(el) { el.classList.remove('hidden'); el.classList.add('flex'); }
+export function closeModal(el) { el.classList.add('hidden'); el.classList.remove('flex'); }
+export function closeAllModals() { closeModal(shopModal); closeModal(invModal); }
+export function isUIOpen() { return !shopModal.classList.contains('hidden') || !invModal.classList.contains('hidden'); }
+
+export function renderInventory(player, MATERIALS) {
+  const counts = new Map();
+  for (const it of player.inventory) {
+    counts.set(it.id, (counts.get(it.id) || 0) + it.qty);
+  }
+  const entries = Array.from(counts.entries());
+  const cells = entries.map(([id, qty]) => {
+    const m = MATERIALS[id];
+    return `<div class='border border-slate-700 rounded-lg p-2 flex flex-col items-start'>
+      <div class='w-5 h-5 rounded-sm mb-1' style='background:${m.color || "transparent"}'></div>
+      <div class='text-xs font-medium'>${m.name}</div>
+      <div class='text-[11px] text-slate-400'>x${qty}</div>
+    </div>`;
+  });
+  while (cells.length < 16) cells.push(`<div class='border border-dashed border-slate-700 rounded-lg p-2 h-[52px]'></div>`);
+  invGrid.innerHTML = cells.join('');
+}
+
+export function openInventory(player, MATERIALS) {
+  renderInventory(player, MATERIALS);
+  openModal(invModal);
+}
+
+export function renderShop(player, upgrades, priceFor, buy) {
+  const items = [upgrades.pickaxe, upgrades.boots, upgrades.backpack];
+  shopBody.innerHTML = items.map(u => {
+    const cur = player[u.key];
+    const nxt = Math.min(u.max, +(cur + u.step).toFixed(2));
+    const cost = priceFor(u);
+    const disabled = (nxt <= cur || player.cash < cost) ? 'opacity-50 cursor-not-allowed' : '';
+    return `
+      <div class='flex items-center justify-between gap-3 rounded-xl border border-slate-700 p-3'>
+        <div>
+          <div class='font-medium'>${u.name}</div>
+          <div class='text-slate-400 text-xs'>${u.desc}</div>
+          <div class='text-xs mt-1'>Current: <span class='text-slate-200'>${cur}</span> → Next: <span class='text-slate-200'>${nxt}</span></div>
+        </div>
+        <button data-key='${u.key}' class='buy px-3 py-1.5 rounded-md border border-slate-600 ${disabled}'>$${cost}</button>
+      </div>`;
+  }).join('');
+  shopBody.querySelectorAll('button.buy').forEach(btn => {
+    btn.onclick = () => {
+      const key = btn.getAttribute('data-key');
+      const u = items.find(x => x.key === key);
+      buy(u);
+      renderShop(player, upgrades, priceFor, buy);
+    };
+  });
+}
+
+export function openShop(player, upgrades, priceFor, buy) {
+  renderShop(player, upgrades, priceFor, buy);
+  openModal(shopModal);
+}
