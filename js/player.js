@@ -30,7 +30,8 @@ const BASE_PLAYER = {
   ascensionPoints: 0,
   ascensionUpgrades: {},
   staminaRegen: 1,
-  holdToMine: false
+  holdToMine: false,
+  mineUp: false
 };
 
 export const player = { ...BASE_PLAYER };
