@@ -3,9 +3,12 @@ import {MATERIALS} from './materials.js';
 import {world, worldToTile, isSolidAt, generateWorld} from './world.js';
 import {canvas, ctx, statsEl, say, closeAllModals, isUIOpen, openInventory, openShop, openMarket, renderMarket, marketModal, saveBtn, loadBtn, loadInput, staminaFill, weightFill, openModal, ascendModal, ascendBtn} from './ui.js';
 import {player, buildings, rectsIntersect, totalWeight, invAdd, teleportHome, upgrades, priceFor, buy, sellItem, sellAll, inventoryValue, ASCENSION_BUILDING, ascend} from './player.js';
-import {saveGameToFile, loadGameFromString} from './save.js';
+import {saveGameToFile, loadGameFromString, saveGameToStorage, loadGameFromStorage} from './save.js';
 
 generateWorld(player.ascensions);
+if (loadGameFromStorage()) {
+  say('Game loaded');
+}
 
 const keys = new Set();
 let mouse = { down: false };
@@ -187,3 +190,7 @@ loadInput.onchange = e => {
 };
 
 ascendBtn.onclick = () => { if (ascend()) closeAllModals(); };
+
+saveGameToStorage();
+setInterval(saveGameToStorage, 10000);
+addEventListener('beforeunload', saveGameToStorage);
