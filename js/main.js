@@ -1,13 +1,14 @@
 import {TILE, MAP_W, MAP_H, MOVE_ACC, MAX_HSPEED, GRAV, FRICTION} from './config.js';
 import {MATERIALS} from './materials.js';
 import {world, worldToTile, isSolidAt} from './world.js';
-import {canvas, ctx, statsEl, say, closeAllModals, isUIOpen, openInventory, openShop, openMarket, renderMarket, marketModal, saveBtn, loadBtn, loadInput, staminaFill} from './ui.js';
+import {canvas, ctx, statsEl, say, closeAllModals, isUIOpen, openInventory, openShop, openMarket, renderMarket, marketModal, saveBtn, loadBtn, loadInput, staminaFill, weightFill} from './ui.js';
 import {player, buildings, rectsIntersect, totalWeight, invAdd, teleportHome, upgrades, priceFor, buy, sellItem, sellAll, inventoryValue} from './player.js';
 import {saveGameToFile, loadGameFromString} from './save.js';
 
 const keys = new Set();
 let mouse = { down: false };
 let lastDir = 'right';
+let weightWarned = false;
 
 addEventListener('keydown', e => {
   const k = e.key;
@@ -132,6 +133,19 @@ function draw() {
   const staminaRatio = Math.max(0, Math.min(player.stamina / player.staminaMax, 1));
   staminaFill.style.height = (staminaRatio * 100) + '%';
   staminaFill.style.backgroundColor = `hsl(${staminaRatio * 120}, 100%, 50%)`;
+
+  const weight = totalWeight();
+  const weightRatio = Math.max(0, Math.min(weight / player.carryCap, 1));
+  weightFill.style.height = (weightRatio * 100) + '%';
+  weightFill.style.backgroundColor = `hsl(${(1 - weightRatio) * 120}, 100%, 50%)`;
+  if (weightRatio >= 0.8) {
+    if (!weightWarned) {
+      say('Inventory almost full! Return to surface soon or excess will be destroyed.');
+      weightWarned = true;
+    }
+  } else {
+    weightWarned = false;
+  }
 }
 
 function loop() { tick(); draw(); requestAnimationFrame(loop); }
