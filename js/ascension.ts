@@ -26,7 +26,7 @@ export const ASCENSION_UPGRADES: AscensionUpgrade[] = [
     cost: 2,
     tier: 1,
     requires: ['drill_range'],
-    apply: p => { p.staminaRegen = (p.staminaRegen || 1) * 2; }
+    apply: p => { p.staminaRegen *= 2; } // no-op while base regen is 0; scales it once set
   },
   {
     id: 'mine_up',

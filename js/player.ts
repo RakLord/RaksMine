@@ -30,7 +30,7 @@ const BASE_PLAYER: Player = {
   ascensionUnlocked: false,
   ascensionPoints: 0,
   ascensionUpgrades: {},
-  staminaRegen: 1,
+  staminaRegen: 0, // stamina/sec. 0 = no passive regen (deliberately off until tuned).
   holdToMine: false,
   mineUp: false,
   buildingProgress: {},
@@ -64,6 +64,12 @@ export const WAREHOUSE_BUILDING: Building = { x: TILE * 33, y: TILE * 5 - TILE *
 export const ASCENSION_BUILDING: Building = { x: TILE * 23, y: TILE * 5 - TILE * 2, w: TILE * 3, h: TILE * 2, kind: 'ascension', name: 'Ascension' };
 
 export const buildings: Building[] = BASE_BUILDINGS.slice();
+
+// Passive stamina recovery. `staminaRegen` is stamina-per-second; callers pass the
+// elapsed seconds for the frame. No-op while staminaRegen is 0 (the current default).
+export function regenStamina(seconds: number) {
+  player.stamina = Math.min(player.staminaMax, player.stamina + player.staminaRegen * seconds);
+}
 
 type Rect = { x: number; y: number; w: number; h: number };
 export function rectsIntersect(a: Rect, b: Rect) {

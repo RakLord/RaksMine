@@ -135,6 +135,15 @@ Three reset paths, now with defined behaviour:
 - `player` is built with `freshPlayer()` (`structuredClone`) so it never shares array refs with
   `BASE_PLAYER` — resets are clean and the template can't be polluted. Covered by `test/reset.test.ts`.
 
+## Stamina regen (wired, currently off)
+`regenStamina(seconds)` (`js/player.ts`) is called every frame from `tick()` as `regenStamina(1/60)`.
+`player.staminaRegen` is measured in **stamina per second** and defaults to **0**, so there's no
+passive regen yet — stamina still only drains (3/swing) and refills on teleport-home / Lungs. To
+enable it, set a non-zero `staminaRegen` (start small; 100 pool, 3/swing). The "2x Stamina Gain"
+ascension upgrade multiplies it (inert while the base is 0). Regen currently applies unconditionally
+each frame; idle-only / not-while-mining gating is a future balance lever. Covered by
+`test/stamina.test.ts`.
+
 ## Known issues & rough edges (backlog)
 Remaining half-wired/unbalanced logic, **not yet fixed**:
 
@@ -142,19 +151,16 @@ Remaining half-wired/unbalanced logic, **not yet fixed**:
    **no max level** so smelt time `10/2^(level-1)` (`js/player.ts:159`) → ~0; Warehouse has **no
    capacity cap** (`storeInWarehouse` pulls `Infinity`, `js/player.ts:164`). Worth a deliberate pass
    on ascension cost curve, upgrade caps, and bar/ore values (`materials.ts`).
-2. **Dead stamina regen.** `player.staminaRegen` is never read in the loop — stamina only refills on
-   teleport-home. The ascension upgrade **"2x Stamina Gain"** (`js/ascension.ts:23`) therefore does
-   nothing. *Fix direction:* add `player.stamina = min(max, stamina + staminaRegen*…)` in `tick()`.
-3. **Uncapped fall speed → tunneling.** The gravity revamp removed the `vy` clamp; `resolveCollisions()`
+2. **Uncapped fall speed → tunneling.** The gravity revamp removed the `vy` clamp; `resolveCollisions()`
    (`js/main.ts:113`) does a single non-swept `y += vy` and only tests the destination cell. On long
    drops `vy` exceeds a tile (24px) and you tunnel through thin floors / the air pockets world-gen
    randomly punches (`js/world.ts:36`). *Fix direction:* cap `vy` to < `TILE`, or sweep the
    collision.
-4. **Forge UI re-renders 60×/second while open** (`js/main.ts:127` → `renderForge`), even with an
+3. **Forge UI re-renders 60×/second while open** (`js/main.ts:127` → `renderForge`), even with an
    empty queue — rebuilds `innerHTML` + rebinds handlers every frame. Wasteful; render on change.
-5. **All new buildings share one color.** `draw()` (`js/main.ts:209`) only special-cases shop
+4. **All new buildings share one color.** `draw()` (`js/main.ts:209`) only special-cases shop
    (blue) and market (purple); builder/forge/warehouse/ascension all render green.
-6. **Save format is unversioned.** `js/save.ts` `Object.assign(player, state.player)` loads any
+5. **Save format is unversioned.** `js/save.ts` `Object.assign(player, state.player)` loads any
    stored fields with no schema/version guard. Adding/removing `player` fields can silently corrupt
    old saves — add migration logic when you change the shape.
 

@@ -2,7 +2,7 @@ import {TILE, MAP_W, MAP_H, MOVE_ACC, GRAV, FRICTION} from './config';
 import {MATERIALS, BAR_MAP} from './materials';
 import {world, worldToTile, isSolidAt, generateWorld} from './world';
 import {canvas, ctx, statsEl, say, closeAllModals, closeModal, isUIOpen, openInventory, openShop, openMarket, marketModal, saveBtn, loadBtn, loadInput, staminaBar, staminaFill, weightBar, weightFill, openModal, ascendModal, ascendBtn, settingsBtn, settingsModal, autosaveRange, autosaveLabel, toastXInput, toastYInput, keybindsTable, hardResetBtn, toastWrap, ascendCostText, openBuilder, openForge, openWarehouse, renderForge, forgeModal} from './ui';
-import {player, buildings, rectsIntersect, totalWeight, invAdd, teleportHome, upgrades, priceFor, buy, sellItem, sellAll, inventoryValue, ASCENSION_BUILDING, ascend, ascensionCost, BUILDING_COSTS, contributeBuilding, queueSmelt, storeInWarehouse, takeFromWarehouse} from './player';
+import {player, buildings, rectsIntersect, totalWeight, invAdd, teleportHome, upgrades, priceFor, buy, sellItem, sellAll, inventoryValue, ASCENSION_BUILDING, ascend, ascensionCost, BUILDING_COSTS, contributeBuilding, queueSmelt, storeInWarehouse, takeFromWarehouse, regenStamina} from './player';
 import {setupPages} from './pages';
 import {setupAscensionShop} from './ascension';
 import {saveGameToFile, loadGameFromString, saveGameToStorage, loadGameFromStorage, SAVE_KEY} from './save';
@@ -181,6 +181,7 @@ function tick() {
   player.vy += GRAV;
   player.vx *= FRICTION;
   resolveCollisions();
+  regenStamina(1 / 60); // ~60fps; same seconds-per-frame convention as the forge
   updateForge();
 
   if (!player.ascensionUnlocked && Math.floor((player.y + player.h) / TILE) >= MAP_H - 1) {
