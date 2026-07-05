@@ -1,6 +1,7 @@
 import {TILE, MAP_W, MAP_H, MOVE_ACC, GRAV, FRICTION} from './config';
 import {MATERIALS, BAR_MAP} from './materials';
 import {world, worldToTile, isSolidAt, generateWorld} from './world';
+import {resolvePlayerMovement} from './physics';
 import {canvas, ctx, statsEl, say, closeAllModals, closeModal, isUIOpen, openInventory, openShop, openMarket, marketModal, saveBtn, loadBtn, loadInput, staminaBar, staminaFill, weightBar, weightFill, openModal, ascendModal, ascendBtn, settingsBtn, settingsModal, autosaveRange, autosaveLabel, toastXInput, toastYInput, keybindsTable, hardResetBtn, toastWrap, ascendCostText, openBuilder, openForge, openWarehouse, renderForge, forgeModal} from './ui';
 import {player, buildings, rectsIntersect, totalWeight, invAdd, teleportHome, upgrades, priceFor, buy, sellItem, sellAll, inventoryValue, ASCENSION_BUILDING, ascend, ascensionCost, BUILDING_COSTS, contributeBuilding, queueSmelt, storeInWarehouse, takeFromWarehouse, regenStamina} from './player';
 import {setupPages} from './pages';
@@ -99,27 +100,7 @@ function tryMine() {
 }
 
 function resolveCollisions() {
-  player.x += player.vx;
-  if (player.vx > 0) {
-    if (isSolidAt(player.x + player.w, player.y) || isSolidAt(player.x + player.w, player.y + player.h - 1)) {
-      player.x = Math.floor((player.x + player.w) / TILE) * TILE - player.w - 0.01; player.vx = 0;
-    }
-  } else if (player.vx < 0) {
-    if (isSolidAt(player.x, player.y) || isSolidAt(player.x, player.y + player.h - 1)) {
-      player.x = Math.floor(player.x / TILE + 1) * TILE + 0.01; player.vx = 0;
-    }
-  }
-
-  player.y += player.vy; player.onGround = false;
-  if (player.vy > 0) {
-    if (isSolidAt(player.x + 1, player.y + player.h) || isSolidAt(player.x + player.w - 1, player.y + player.h)) {
-      player.y = Math.floor((player.y + player.h) / TILE) * TILE - player.h - 0.01; player.vy = 0; player.onGround = true;
-    }
-  } else if (player.vy < 0) {
-    if (isSolidAt(player.x + 1, player.y) || isSolidAt(player.x + player.w - 1, player.y)) {
-      player.y = Math.floor(player.y / TILE + 1) * TILE + 0.01; player.vy = 0;
-    }
-  }
+  resolvePlayerMovement(player, isSolidAt);
 }
 
 const camera = { x: 0, y: 0 };
