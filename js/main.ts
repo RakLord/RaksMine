@@ -328,10 +328,12 @@ toastYInput.oninput = () => {
 };
 
 hardResetBtn.onclick = () => {
-  if (confirm('Erase all save data?')) {
-    localStorage.removeItem(SAVE_KEY);
-    localStorage.removeItem('keybinds');
-    localStorage.removeItem('autosaveInterval');
+  if (confirm('Reset all game progress? Your keybinds and settings are kept.')) {
+    // Stop autosave and the unload save first, or they'd immediately re-persist the
+    // state we're about to clear and the reload would just restore it.
+    clearInterval(autosaveHandle);
+    removeEventListener('beforeunload', saveGameToStorage);
+    localStorage.removeItem(SAVE_KEY); // progress only — keybinds/autosave/toast settings kept
     location.reload();
   }
 };
