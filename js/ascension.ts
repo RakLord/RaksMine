@@ -1,6 +1,7 @@
-import { openModal, ascShopBtn, ascShopModal, ascShopBody, say } from './ui.js';
+import { openModal, ascShopBtn, ascShopModal, ascShopBody, say } from './ui';
+import type { AscensionUpgrade, Player } from './types';
 
-export const ASCENSION_UPGRADES = [
+export const ASCENSION_UPGRADES: AscensionUpgrade[] = [
   {
     id: 'drill_range',
     name: '+1 Drill Range',
@@ -37,9 +38,9 @@ export const ASCENSION_UPGRADES = [
   }
 ];
 
-const UP_MAP = Object.fromEntries(ASCENSION_UPGRADES.map(u => [u.id, u]));
+const UP_MAP: Record<string, AscensionUpgrade> = Object.fromEntries(ASCENSION_UPGRADES.map(u => [u.id, u]));
 
-export function applyAscensionUpgrades(player) {
+export function applyAscensionUpgrades(player: Player) {
   if (!player.ascensionUpgrades) player.ascensionUpgrades = {};
   for (const id in player.ascensionUpgrades) {
     const up = UP_MAP[id];
@@ -47,19 +48,19 @@ export function applyAscensionUpgrades(player) {
   }
 }
 
-export function setupAscensionShop(player) {
+export function setupAscensionShop(player: Player) {
   if (!ascShopBtn) return;
 
-  function owned(id) { return player.ascensionUpgrades && player.ascensionUpgrades[id]; }
+  function owned(id: string) { return player.ascensionUpgrades && player.ascensionUpgrades[id]; }
 
-  function canBuy(up) {
+  function canBuy(up: AscensionUpgrade) {
     if (owned(up.id)) return false;
     if (player.ascensionPoints < up.cost) return false;
     if (up.requires && !up.requires.every(r => owned(r))) return false;
     return true;
   }
 
-  function buy(id) {
+  function buy(id: string) {
     const up = UP_MAP[id];
     if (!up || !canBuy(up)) return;
     player.ascensionPoints -= up.cost;
@@ -71,7 +72,7 @@ export function setupAscensionShop(player) {
   }
 
   function render() {
-    const tiers = {};
+    const tiers: Record<number, AscensionUpgrade[]> = {};
     for (const up of ASCENSION_UPGRADES) {
       (tiers[up.tier] ||= []).push(up);
     }
@@ -88,8 +89,8 @@ export function setupAscensionShop(player) {
     }
     html += '</div>';
     ascShopBody.innerHTML = html;
-    ascShopBody.querySelectorAll('button.ascUpg').forEach(btn => {
-      btn.onclick = () => buy(btn.getAttribute('data-id'));
+    ascShopBody.querySelectorAll<HTMLElement>('button.ascUpg').forEach(btn => {
+      btn.onclick = () => { const id = btn.getAttribute('data-id'); if (id) buy(id); };
     });
   }
 

@@ -1,11 +1,11 @@
-import {TILE, MAP_W, MAP_H, MOVE_ACC, GRAV, FRICTION} from './config.js';
-import {MATERIALS, BAR_MAP} from './materials.js';
-import {world, worldToTile, isSolidAt, generateWorld} from './world.js';
-import {canvas, ctx, statsEl, say, closeAllModals, closeModal, isUIOpen, openInventory, openShop, openMarket, marketModal, saveBtn, loadBtn, loadInput, staminaBar, staminaFill, weightBar, weightFill, openModal, ascendModal, ascendBtn, settingsBtn, settingsModal, autosaveRange, autosaveLabel, toastXInput, toastYInput, keybindsTable, hardResetBtn, toastWrap, ascendCostText, openBuilder, openForge, openWarehouse, renderForge, forgeModal} from './ui.js';
-import {player, buildings, rectsIntersect, totalWeight, invAdd, teleportHome, upgrades, priceFor, buy, sellItem, sellAll, inventoryValue, ASCENSION_BUILDING, ascend, ascensionCost, BUILDING_COSTS, contributeBuilding, queueSmelt, storeInWarehouse, takeFromWarehouse} from './player.js';
-import {setupPages} from './pages.js';
-import {setupAscensionShop} from './ascension.js';
-import {saveGameToFile, loadGameFromString, saveGameToStorage, loadGameFromStorage, SAVE_KEY} from './save.js';
+import {TILE, MAP_W, MAP_H, MOVE_ACC, GRAV, FRICTION} from './config';
+import {MATERIALS, BAR_MAP} from './materials';
+import {world, worldToTile, isSolidAt, generateWorld} from './world';
+import {canvas, ctx, statsEl, say, closeAllModals, closeModal, isUIOpen, openInventory, openShop, openMarket, marketModal, saveBtn, loadBtn, loadInput, staminaBar, staminaFill, weightBar, weightFill, openModal, ascendModal, ascendBtn, settingsBtn, settingsModal, autosaveRange, autosaveLabel, toastXInput, toastYInput, keybindsTable, hardResetBtn, toastWrap, ascendCostText, openBuilder, openForge, openWarehouse, renderForge, forgeModal} from './ui';
+import {player, buildings, rectsIntersect, totalWeight, invAdd, teleportHome, upgrades, priceFor, buy, sellItem, sellAll, inventoryValue, ASCENSION_BUILDING, ascend, ascensionCost, BUILDING_COSTS, contributeBuilding, queueSmelt, storeInWarehouse, takeFromWarehouse} from './player';
+import {setupPages} from './pages';
+import {setupAscensionShop} from './ascension';
+import {saveGameToFile, loadGameFromString, saveGameToStorage, loadGameFromStorage, SAVE_KEY} from './save';
 
 generateWorld(player.ascensions, player.equippedPages);
 if (loadGameFromStorage()) {
@@ -19,7 +19,7 @@ let mouse = { down: false };
 let mineDir = 'down';
 let weightWarned = false;
 
-const DEFAULT_KEYBINDS = {
+const DEFAULT_KEYBINDS: Record<string, string> = {
   left: 'a',
   right: 'd',
   down: 's',
@@ -29,7 +29,7 @@ const DEFAULT_KEYBINDS = {
   teleport: 'r',
   interact: 'f'
 };
-const keyDescriptions = {
+const keyDescriptions: Record<string, string> = {
   left: 'Move Left',
   right: 'Move Right',
   down: 'Aim Down',
@@ -39,12 +39,12 @@ const keyDescriptions = {
   teleport: 'Teleport Home',
   interact: 'Interact'
 };
-let keybinds = JSON.parse(localStorage.getItem('keybinds') || 'null') || {};
+let keybinds: Record<string, string> = JSON.parse(localStorage.getItem('keybinds') || 'null') || {};
 keybinds = { ...DEFAULT_KEYBINDS, ...keybinds };
 
 function saveKeybinds() { localStorage.setItem('keybinds', JSON.stringify(keybinds)); }
 
-function keyLabel(k) { return k === ' ' ? 'Space' : k.length === 1 ? k.toUpperCase() : k; }
+function keyLabel(k: string) { return k === ' ' ? 'Space' : k.length === 1 ? k.toUpperCase() : k; }
 
 addEventListener('keydown', e => {
   const k = e.key;
@@ -202,7 +202,7 @@ function draw() {
   const x1 = Math.min(MAP_W, Math.ceil((camera.x + canvas.width) / TILE)), y1 = Math.min(MAP_H, Math.ceil((camera.y + canvas.height) / TILE));
   for (let ty = y0; ty < y1; ty++) for (let tx = x0; tx < x1; tx++) {
     const id = world.get(tx, ty); if (id === 0) continue;
-    ctx.fillStyle = MATERIALS[id].color;
+    ctx.fillStyle = MATERIALS[id].color ?? '#000000';
     ctx.fillRect(tx * TILE - camera.x, ty * TILE - camera.y, TILE, TILE);
   }
   for (const b of buildings) {
@@ -255,12 +255,12 @@ addEventListener('resize', fit); fit();
 
 saveBtn.onclick = () => { saveGameToFile(); say('Game saved'); };
 loadBtn.onclick = () => loadInput.click();
-loadInput.onchange = e => {
-  const file = e.target.files[0];
+loadInput.onchange = () => {
+  const file = loadInput.files?.[0];
   if (!file) return;
   const reader = new FileReader();
   reader.onload = () => {
-    if (loadGameFromString(reader.result)) say('Game loaded');
+    if (loadGameFromString(String(reader.result))) say('Game loaded');
     else say('Failed to load save');
   };
   reader.readAsText(file);
@@ -276,14 +276,15 @@ function renderKeybinds() {
     <div class='py-1'>${keyDescriptions[action]}</div>
     <button data-action='${action}' class='key px-2 py-1 rounded-md border border-slate-600'>${keyLabel(keybinds[action])}</button>
   `).join('');
-  keybindsTable.querySelectorAll('button.key').forEach(btn => {
+  keybindsTable.querySelectorAll<HTMLElement>('button.key').forEach(btn => {
     btn.onclick = () => {
       const action = btn.getAttribute('data-action');
+      if (!action) return;
       btn.textContent = '...';
-      function handler(e) {
+      function handler(e: KeyboardEvent) {
         e.preventDefault(); e.stopPropagation();
         const lk = e.key.toLowerCase();
-        keybinds[action] = lk;
+        keybinds[action!] = lk;
         saveKeybinds();
         renderKeybinds();
         window.removeEventListener('keydown', handler, true);
@@ -294,13 +295,13 @@ function renderKeybinds() {
 }
 
 let autosaveMs = parseInt(localStorage.getItem('autosaveInterval') || '10000');
-autosaveRange.value = autosaveMs / 1000;
+autosaveRange.value = String(autosaveMs / 1000);
 function refreshAutosaveLabel() { autosaveLabel.textContent = (autosaveMs / 1000) + 's'; }
 refreshAutosaveLabel();
 let autosaveHandle = setInterval(saveGameToStorage, autosaveMs);
 autosaveRange.oninput = () => {
-  autosaveMs = autosaveRange.value * 1000;
-  localStorage.setItem('autosaveInterval', autosaveMs);
+  autosaveMs = Number(autosaveRange.value) * 1000;
+  localStorage.setItem('autosaveInterval', String(autosaveMs));
   refreshAutosaveLabel();
   clearInterval(autosaveHandle);
   autosaveHandle = setInterval(saveGameToStorage, autosaveMs);
@@ -313,16 +314,16 @@ function applyToastPos() {
   toastWrap.style.top = toastY + 'px';
 }
 applyToastPos();
-toastXInput.value = toastX;
-toastYInput.value = toastY;
+toastXInput.value = String(toastX);
+toastYInput.value = String(toastY);
 toastXInput.oninput = () => {
   toastX = parseInt(toastXInput.value || '0');
-  localStorage.setItem('toastX', toastX);
+  localStorage.setItem('toastX', String(toastX));
   applyToastPos();
 };
 toastYInput.oninput = () => {
   toastY = parseInt(toastYInput.value || '0');
-  localStorage.setItem('toastY', toastY);
+  localStorage.setItem('toastY', String(toastY));
   applyToastPos();
 };
 

@@ -1,5 +1,6 @@
-import { player, buildings } from './player.js';
-import { world } from './world.js';
+import { player, buildings } from './player';
+import { world } from './world';
+import type { SaveState } from './types';
 
 export function serializeGame() {
   const state = {
@@ -23,10 +24,10 @@ export function saveGameToFile() {
   URL.revokeObjectURL(url);
 }
 
-export function loadGameFromString(b64) {
+export function loadGameFromString(b64: string) {
   try {
     const json = atob(b64.trim());
-    const state = JSON.parse(json);
+    const state = JSON.parse(json) as SaveState;
     Object.assign(player, state.player);
     player.inventory = state.player.inventory || [];
     player.pages = state.player.pages || {};
@@ -35,7 +36,7 @@ export function loadGameFromString(b64) {
     player.ascensionPoints = state.player.ascensionPoints || 0;
     player.buildingProgress = state.player.buildingProgress || {};
     player.forgeLevel = state.player.forgeLevel || 0;
-    player.forgeQueue = (state.player.forgeQueue || []).map(j => ({ total: j.total || j.time || 0, ...j }));
+    player.forgeQueue = (state.player.forgeQueue || []).map(j => ({ ...j, total: j.total || j.time || 0 }));
     player.warehouse = state.player.warehouse || [];
     buildings.length = 0;
     if (Array.isArray(state.buildings)) {
