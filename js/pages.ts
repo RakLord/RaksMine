@@ -119,7 +119,7 @@ export function setupPages(player: Player) {
   closeBtn.onclick = () => { if (mysticInterval) clearInterval(mysticInterval); closeModal(modal); };
 
   function renderList() {
-    body.innerHTML = `<div class='grid grid-cols-3 gap-2'>` +
+    body.innerHTML = `<div class='grid-3'>` +
       PAGES.map(p => {
         const owned = player.pages[p.id];
         const total = owned ? Object.values(owned).reduce((a, b) => a + b, 0) : 0;
@@ -127,12 +127,12 @@ export function setupPages(player: Player) {
         const known = total > 0;
         const merge = canMerge(owned);
         const equipped = player.equippedPages[p.id];
-        return `<div data-id='${p.id}' class='pageTile border ${known ? 'border-emerald-500' : 'border-slate-700'} rounded-lg p-2 ${known ? 'cursor-pointer' : ''} ${equipped ? 'bg-slate-700' : ''}'>` +
+        return `<div data-id='${p.id}' class='pageTile tile ${known ? 'is-known' : ''} ${equipped ? 'is-equipped' : ''}'>` +
           `<div class='font-medium ${known ? '' : 'unknownName enchant'}'>${known ? p.name : randomEnchant()}</div>` +
-          `<div class='text-xs text-slate-400'>${p.rarity}</div>` +
+          `<div class='text-xs muted'>${p.rarity}</div>` +
           `<div class='text-xs'>Lv ${highest}</div>` +
           `<div class='text-xs'>x${total}</div>` +
-          (merge ? `<div class='text-[10px] text-yellow-400 mt-1'>Merge!</div>` : '') +
+          (merge ? `<div class='flag-merge'>Merge!</div>` : '') +
           `</div>`;
       }).join('') + `</div>`;
     if (mysticInterval) clearInterval(mysticInterval);
@@ -163,14 +163,14 @@ export function setupPages(player: Player) {
     const equipped = player.equippedPages[id] || 0;
     const mergePossible = canMerge(owned);
     body.innerHTML = `
-      <button id='pagesBack' class='mb-3 px-2 py-1 rounded-md border border-slate-600'>&larr; Back</button>
-      <div class='mb-2 font-semibold'>${page.name}</div>
-      <div class='mb-2 text-slate-400 text-xs'>${page.desc}</div>
-      <div class='mb-2'>Owned:</div>
-      <div class='mb-3 text-xs'>${ownedSummary(owned) || 'None'}</div>
-      <div class='flex gap-2'>
-        <button id='pagesMerge' class='px-3 py-1 rounded-md border border-slate-600 ${mergePossible ? '' : 'opacity-50 cursor-not-allowed'}'>Merge</button>
-        <button id='pagesEquip' class='px-3 py-1 rounded-md border border-slate-600'>${equipped ? 'Unequip' : 'Equip Lv ' + highest}</button>
+      <button id='pagesBack' class='btn btn-sm' style='align-self:flex-start'>&larr; Back</button>
+      <div class='font-semibold'>${page.name}</div>
+      <div class='muted text-xs'>${page.desc}</div>
+      <div>Owned:</div>
+      <div class='text-xs'>${ownedSummary(owned) || 'None'}</div>
+      <div class='row'>
+        <button id='pagesMerge' class='btn ${mergePossible ? '' : 'is-disabled'}'>Merge</button>
+        <button id='pagesEquip' class='btn'>${equipped ? 'Unequip' : 'Equip Lv ' + highest}</button>
       </div>
     `;
     el('pagesBack').onclick = () => { renderList(); };

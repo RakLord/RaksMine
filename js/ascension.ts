@@ -77,13 +77,13 @@ export function setupAscensionShop(player: Player) {
       (tiers[up.tier] ||= []).push(up);
     }
     const order = Object.keys(tiers).map(Number).sort((a, b) => a - b);
-    let html = `<div class='mb-3'>Ascension Points: ${player.ascensionPoints}</div><div class='flex gap-4'>`;
+    let html = `<div>Ascension Points: <span class='accent'>${player.ascensionPoints}</span></div><div class='row' style='align-items:flex-start;gap:16px'>`;
     for (const t of order) {
-      html += "<div class='flex flex-col gap-2'>";
+      html += "<div class='col'>";
       for (const up of tiers[t]) {
         const bought = owned(up.id);
-        const disabled = !canBuy(up) ? 'opacity-50 cursor-not-allowed' : '';
-        html += `<button data-id='${up.id}' class='ascUpg px-2 py-1 rounded-md border border-slate-600 ${disabled} ${bought ? 'bg-slate-700' : ''}'>${up.name}<br><span class='text-xs text-slate-400'>Cost ${up.cost}</span></button>`;
+        const disabled = !canBuy(up) ? 'is-disabled' : '';
+        html += `<button data-id='${up.id}' class='ascUpg btn ${disabled} ${bought ? 'is-owned' : ''}'>${up.name}<br><span class='text-xs muted'>Cost ${up.cost}</span></button>`;
       }
       html += '</div>';
     }

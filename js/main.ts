@@ -2,8 +2,9 @@ import {TILE, MAP_W, MAP_H, MOVE_ACC, GRAV, FRICTION} from './config';
 import {MATERIALS, BAR_MAP} from './materials';
 import {world, worldToTile, isSolidAt, generateWorld} from './world';
 import {resolvePlayerMovement} from './physics';
-import {canvas, ctx, statsEl, say, closeAllModals, closeModal, isUIOpen, openInventory, openShop, openMarket, marketModal, saveBtn, loadBtn, loadInput, staminaBar, staminaFill, weightBar, weightFill, openModal, ascendModal, ascendBtn, settingsBtn, settingsModal, autosaveRange, autosaveLabel, toastXInput, toastYInput, keybindsTable, hardResetBtn, toastWrap, ascendCostText, openBuilder, openForge, openWarehouse, renderForge, forgeModal} from './ui';
+import {el, canvas, ctx, statsEl, say, closeAllModals, closeModal, isUIOpen, openInventory, openShop, openMarket, marketModal, saveBtn, loadBtn, loadInput, staminaBar, staminaFill, weightBar, weightFill, openModal, ascendModal, ascendBtn, settingsBtn, settingsModal, autosaveRange, autosaveLabel, toastXInput, toastYInput, keybindsTable, hardResetBtn, toastWrap, ascendCostText, openBuilder, openForge, openWarehouse, renderForge, forgeModal} from './ui';
 import {player, buildings, rectsIntersect, totalWeight, invAdd, teleportHome, upgrades, priceFor, buy, sellItem, sellAll, inventoryValue, ASCENSION_BUILDING, ascend, ascensionCost, BUILDING_COSTS, contributeBuilding, queueSmelt, storeInWarehouse, takeFromWarehouse, regenStamina} from './player';
+import {tileSprites} from './sprites';
 import {setupPages} from './pages';
 import {setupAscensionShop} from './ascension';
 import {saveGameToFile, loadGameFromString, saveGameToStorage, loadGameFromStorage, SAVE_KEY} from './save';
@@ -46,6 +47,38 @@ keybinds = { ...DEFAULT_KEYBINDS, ...keybinds };
 function saveKeybinds() { localStorage.setItem('keybinds', JSON.stringify(keybinds)); }
 
 function keyLabel(k: string) { return k === ' ' ? 'Space' : k.length === 1 ? k.toUpperCase() : k; }
+
+// ---- new-player guidance ----
+const interactPrompt = el('interactPrompt');
+const controlsHint = el('controlsHint');
+const INTERACT_VERBS: Record<string, string> = {
+  market: 'open the Market',
+  shop: 'open the Shop',
+  builder: 'open the Builder',
+  forge: 'open the Forge',
+  warehouse: 'open the Warehouse',
+  ascension: 'ascend',
+};
+let lastPromptKey = '';
+function updateInteractPrompt() {
+  const b = isUIOpen() ? undefined : buildings.find(bb => INTERACT_VERBS[bb.kind] && rectsIntersect(player, bb));
+  const key = b ? b.kind + ':' + keybinds.interact : '';
+  if (key === lastPromptKey) return;
+  lastPromptKey = key;
+  if (b) {
+    interactPrompt.innerHTML = `Press <kbd>${keyLabel(keybinds.interact)}</kbd> to ${INTERACT_VERBS[b.kind]}`;
+    interactPrompt.classList.remove('hidden');
+  } else {
+    interactPrompt.classList.add('hidden');
+  }
+}
+function renderControlsHint() {
+  const k = (a: string) => `<kbd>${keyLabel(keybinds[a])}</kbd>`;
+  controlsHint.innerHTML =
+    `Move ${k('left')}${k('right')} · Aim ${k('up')}${k('down')} · Mine ${k('mine')} · ` +
+    `Interact ${k('interact')} · Inventory ${k('inventory')} · Home ${k('teleport')}`;
+}
+renderControlsHint();
 
 addEventListener('keydown', e => {
   const k = e.key;
@@ -179,13 +212,16 @@ function tick() {
 }
 
 function draw() {
+  ctx.imageSmoothingEnabled = false; // crisp pixel-art tiles; canvas resize resets this, so set per-frame
   ctx.fillStyle = '#0b0d12'; ctx.fillRect(0, 0, canvas.width, canvas.height);
   const x0 = Math.max(0, Math.floor(camera.x / TILE)), y0 = Math.max(0, Math.floor(camera.y / TILE));
   const x1 = Math.min(MAP_W, Math.ceil((camera.x + canvas.width) / TILE)), y1 = Math.min(MAP_H, Math.ceil((camera.y + canvas.height) / TILE));
   for (let ty = y0; ty < y1; ty++) for (let tx = x0; tx < x1; tx++) {
     const id = world.get(tx, ty); if (id === 0) continue;
-    ctx.fillStyle = MATERIALS[id].color ?? '#000000';
-    ctx.fillRect(tx * TILE - camera.x, ty * TILE - camera.y, TILE, TILE);
+    const dx = tx * TILE - camera.x, dy = ty * TILE - camera.y;
+    const img = tileSprites[id];
+    if (img && img.complete && img.naturalWidth) ctx.drawImage(img, dx, dy, TILE, TILE);
+    else { ctx.fillStyle = MATERIALS[id].color ?? '#000000'; ctx.fillRect(dx, dy, TILE, TILE); }
   }
   for (const b of buildings) {
     ctx.fillStyle = b.kind === 'shop' ? '#2563eb' : b.kind === 'market' ? '#9333ea' : '#1fa94c';
@@ -201,15 +237,25 @@ function draw() {
   ctx.fillStyle = '#f59e0b';
   ctx.fillRect(player.x - camera.x, player.y - camera.y, player.w, player.h);
 
-  statsEl.innerHTML = `Cash: $${player.cash} | Stamina: ${Math.floor(player.stamina)}/${player.staminaMax} | Weight: ${totalWeight()}/${player.carryCap} | Pick: ${player.pickPower} | Drill: ${player.drill} | Speed×${player.speed.toFixed(2)}`;
+  const depth = Math.max(0, Math.floor((player.y + player.h) / TILE));
+  const stat = (k: string, v: string) => `<span><span class='k'>${k}</span><span class='v'>${v}</span></span>`;
+  statsEl.innerHTML = [
+    stat('DEPTH', depth + 'm'),
+    stat('CASH', '$' + player.cash),
+    stat('STA', Math.floor(player.stamina) + '/' + player.staminaMax),
+    stat('WGT', totalWeight() + '/' + player.carryCap),
+    stat('PICK', String(player.pickPower)),
+    stat('DRILL', String(player.drill)),
+    stat('SPD', '×' + player.speed.toFixed(2)),
+  ].join(`<span class='sep'>·</span>`);
   const staminaRatio = Math.max(0, Math.min(player.stamina / player.staminaMax, 1));
   staminaFill.style.height = (staminaRatio * 100) + '%';
-  staminaFill.style.backgroundColor = `hsl(${staminaRatio * 120}, 100%, 50%)`;
+  staminaFill.style.backgroundColor = `hsl(${staminaRatio * 110}, 55%, 45%)`;
 
   const weight = totalWeight();
   const weightRatio = Math.max(0, Math.min(weight / player.carryCap, 1));
   weightFill.style.height = (weightRatio * 100) + '%';
-  weightFill.style.backgroundColor = `hsl(${(1 - weightRatio) * 120}, 100%, 50%)`;
+  weightFill.style.backgroundColor = `hsl(${(1 - weightRatio) * 110}, 55%, 45%)`;
   if (weightRatio >= 0.8) {
     if (!weightWarned) {
       say('Inventory almost full! Return to surface soon or excess will be destroyed.');
@@ -223,6 +269,8 @@ function draw() {
   const faded = playerCol < 5;
   staminaBar.style.opacity = faded ? '0.5' : '1';
   weightBar.style.opacity = faded ? '0.5' : '1';
+
+  updateInteractPrompt();
 }
 
 function loop() { tick(); draw(); requestAnimationFrame(loop); }
@@ -255,8 +303,8 @@ settingsBtn.onclick = () => { renderKeybinds(); openModal(settingsModal); };
 
 function renderKeybinds() {
   keybindsTable.innerHTML = Object.keys(keybinds).map(action => `
-    <div class='py-1'>${keyDescriptions[action]}</div>
-    <button data-action='${action}' class='key px-2 py-1 rounded-md border border-slate-600'>${keyLabel(keybinds[action])}</button>
+    <div>${keyDescriptions[action]}</div>
+    <button data-action='${action}' class='key btn btn-sm'>${keyLabel(keybinds[action])}</button>
   `).join('');
   keybindsTable.querySelectorAll<HTMLElement>('button.key').forEach(btn => {
     btn.onclick = () => {
@@ -274,6 +322,7 @@ function renderKeybinds() {
       window.addEventListener('keydown', handler, true);
     };
   });
+  renderControlsHint();
 }
 
 let autosaveMs = parseInt(localStorage.getItem('autosaveInterval') || '10000');
@@ -292,8 +341,9 @@ autosaveRange.oninput = () => {
 let toastX = parseInt(localStorage.getItem('toastX') || '16');
 let toastY = parseInt(localStorage.getItem('toastY') || '16');
 function applyToastPos() {
-  toastWrap.style.left = toastX + 'px';
-  toastWrap.style.top = toastY + 'px';
+  // anchored from the bottom-right corner; X = offset from right, Y = offset from bottom
+  toastWrap.style.right = toastX + 'px';
+  toastWrap.style.bottom = toastY + 'px';
 }
 applyToastPos();
 toastXInput.value = String(toastX);
