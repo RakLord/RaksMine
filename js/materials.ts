@@ -1,4 +1,6 @@
-export const MATERIALS = [
+import type {Material, MaterialId} from './types';
+
+export const MATERIALS: Material[] = [
   {id:0, name:'Air',     color:null,      solid:false, hard:0, value:0,  weight:0},
   {id:1, name:'Grass',   color:'#1fa94c', solid:true,  hard:1, value:0,  weight:1},
   {id:2, name:'Dirt',    color:'#7b5134', solid:true,  hard:1, value:0,  weight:1},
@@ -12,14 +14,14 @@ export const MATERIALS = [
 ];
 
 // Mapping from ore id to bar id
-export const BAR_MAP = {};
+export const BAR_MAP: Record<MaterialId, MaterialId> = {};
 
 // Automatically generate bar variants for ores
 const base = MATERIALS.slice();
 for (const mat of base) {
   if (!mat.ore) continue;
   const id = MATERIALS.length;
-  const bar = {
+  const bar: Material = {
     id,
     name: mat.name + ' Bar',
     color: mat.color,

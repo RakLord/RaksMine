@@ -1,13 +1,14 @@
-import {TILE, MAP_W} from './config.js';
-import {MATERIALS, BAR_MAP} from './materials.js';
-import {world, generateWorld} from './world.js';
-import {say} from './ui.js';
-import {awardRandomPage} from './pages.js';
-import {applyAscensionUpgrades} from './ascension.js';
+import {TILE, MAP_W} from './config';
+import {MATERIALS, BAR_MAP} from './materials';
+import {world, generateWorld} from './world';
+import {say} from './ui';
+import {awardRandomPage} from './pages';
+import {applyAscensionUpgrades} from './ascension';
+import type {Player, Building, Upgrade, BuildingCost, MaterialId} from './types';
 
 export const SPAWN_X = TILE * 10;
 
-const BASE_PLAYER = {
+const BASE_PLAYER: Player = {
   x: SPAWN_X,
   y: TILE * 5 - 22,
   w: 16,
@@ -38,22 +39,23 @@ const BASE_PLAYER = {
   warehouse: []
 };
 
-export const player = { ...BASE_PLAYER };
+export const player: Player = { ...BASE_PLAYER };
 
-export const BASE_BUILDINGS = [
+export const BASE_BUILDINGS: Building[] = [
   { x: TILE * 8,  y: TILE * 5 - TILE * 2, w: TILE * 3, h: TILE * 2, kind: 'shop',    name: 'Shop' },
   { x: TILE * 13, y: TILE * 5 - TILE * 2, w: TILE * 3, h: TILE * 2, kind: 'builder', name: 'Builder' },
   { x: TILE * 18, y: TILE * 5 - TILE * 2, w: TILE * 3, h: TILE * 2, kind: 'market',  name: 'Market' },
 ];
 
-export const FORGE_BUILDING = { x: TILE * 28, y: TILE * 5 - TILE * 2, w: TILE * 3, h: TILE * 2, kind: 'forge', name: 'Forge' };
-export const WAREHOUSE_BUILDING = { x: TILE * 33, y: TILE * 5 - TILE * 2, w: TILE * 3, h: TILE * 2, kind: 'warehouse', name: 'Warehouse' };
+export const FORGE_BUILDING: Building = { x: TILE * 28, y: TILE * 5 - TILE * 2, w: TILE * 3, h: TILE * 2, kind: 'forge', name: 'Forge' };
+export const WAREHOUSE_BUILDING: Building = { x: TILE * 33, y: TILE * 5 - TILE * 2, w: TILE * 3, h: TILE * 2, kind: 'warehouse', name: 'Warehouse' };
 
-export const ASCENSION_BUILDING = { x: TILE * 23, y: TILE * 5 - TILE * 2, w: TILE * 3, h: TILE * 2, kind: 'ascension', name: 'Ascension' };
+export const ASCENSION_BUILDING: Building = { x: TILE * 23, y: TILE * 5 - TILE * 2, w: TILE * 3, h: TILE * 2, kind: 'ascension', name: 'Ascension' };
 
-export const buildings = BASE_BUILDINGS.slice();
+export const buildings: Building[] = BASE_BUILDINGS.slice();
 
-export function rectsIntersect(a, b) {
+type Rect = { x: number; y: number; w: number; h: number };
+export function rectsIntersect(a: Rect, b: Rect) {
   return a.x < b.x + b.w && a.x + a.w > b.x && a.y < b.y + b.h && a.y + a.h > b.y;
 }
 
@@ -61,12 +63,12 @@ export function totalWeight() {
   return player.inventory.reduce((s, it) => s + MATERIALS[it.id].weight * it.qty, 0);
 }
 
-export function invAdd(id, qty = 1) {
+export function invAdd(id: MaterialId, qty = 1) {
   const it = player.inventory.find(i => i.id === id);
   if (it) it.qty += qty; else player.inventory.push({ id, qty });
 }
 
-function removeFromInventory(id, qty) {
+function removeFromInventory(id: MaterialId, qty: number) {
   const it = player.inventory.find(i => i.id === id);
   if (!it) return 0;
   const take = Math.min(it.qty, qty);
@@ -75,7 +77,7 @@ function removeFromInventory(id, qty) {
   return take;
 }
 
-export function invTrimTo(cap) {
+export function invTrimTo(cap: number) {
   const items = player.inventory.map(it => ({ ...it, vpw: MATERIALS[it.id].value / Math.max(1, MATERIALS[it.id].weight) }))
     .sort((a, b) => a.vpw - b.vpw);
   let w = items.reduce((s, it) => s + MATERIALS[it.id].weight * it.qty, 0);
@@ -92,7 +94,7 @@ export function inventoryValue() {
   return player.inventory.reduce((s, it) => s + MATERIALS[it.id].value * it.qty, 0);
 }
 
-export function sellItem(id) {
+export function sellItem(id: MaterialId) {
   const idx = player.inventory.findIndex(it => it.id === id);
   if (idx === -1) { say('Item not found.'); return; }
   const it = player.inventory[idx];
@@ -110,7 +112,7 @@ export function sellAll() {
   say(`Sold for $${gained}`);
 }
 
-export const BUILDING_COSTS = {
+export const BUILDING_COSTS: Record<string, BuildingCost> = {
   forge: { materials: { 5: 50, 3: 50 }, cash: 5000 },
   warehouse: { materials: { [BAR_MAP[5]]: 50, 3: 100 }, cash: 0 },
   forgeUpgrade: {
@@ -119,7 +121,7 @@ export const BUILDING_COSTS = {
   }
 };
 
-export function contributeBuilding(kind) {
+export function contributeBuilding(kind: string) {
   const cost = BUILDING_COSTS[kind];
   if (!cost) return;
   const prog = player.buildingProgress[kind] || { materials: {}, cash: 0 };
@@ -149,7 +151,7 @@ export function contributeBuilding(kind) {
   }
 }
 
-export function queueSmelt(oreId) {
+export function queueSmelt(oreId: MaterialId) {
   const barId = BAR_MAP[oreId];
   if (barId === undefined) { say('Cannot smelt that.'); return; }
   const taken = removeFromInventory(oreId, 10);
@@ -159,14 +161,14 @@ export function queueSmelt(oreId) {
   say('Smelting started.');
 }
 
-export function storeInWarehouse(id) {
+export function storeInWarehouse(id: MaterialId) {
   const taken = removeFromInventory(id, Infinity);
   if (taken <= 0) { say('Nothing to store.'); return; }
   const slot = player.warehouse.find(i => i.id === id);
   if (slot) slot.qty += taken; else player.warehouse.push({ id, qty: taken });
 }
 
-export function takeFromWarehouse(id) {
+export function takeFromWarehouse(id: MaterialId) {
   const idx = player.warehouse.findIndex(i => i.id === id);
   if (idx === -1) return;
   const it = player.warehouse[idx];
@@ -194,6 +196,11 @@ export function teleportHome() {
 }
 
 function resetPlayerStats() {
+  // TODO(stage5): this preserves only ascension/pages/upgrade fields — it drops
+  // warehouse, forgeLevel, forgeQueue, and buildingProgress. Combined with the
+  // buildings reset in ascend()/softReset(), every prestige destroys the Forge,
+  // the Warehouse, and everything stored in it. Decide an explicit
+  // persist-across-ascension boundary and keep those fields.
   const { ascensions, ascensionUnlocked, holdToMine, pages, equippedPages, ascensionPoints, ascensionUpgrades } = player;
   Object.assign(player, { ...BASE_PLAYER, ascensions, ascensionUnlocked, holdToMine, pages, equippedPages, ascensionPoints, ascensionUpgrades });
   player.inventory = [];
@@ -249,7 +256,7 @@ export function softReset() {
   return true;
 }
 
-export const upgrades = {
+export const upgrades: Record<string, Upgrade> = {
   pickaxe:  { key: 'pickPower', name: 'Pickaxe',           desc: 'Mine harder materials', step: 1,    max: 10,  base: 50,  scale: 1.6,  baseLevel: 0 },
   boots:    { key: 'speed',     name: 'Boots',             desc: 'Move faster',          step: 0.10, max: 2.0, base: 80,  scale: 1.5,  baseLevel: 0.3 },
   backpack: { key: 'carryCap',  name: 'Leather Backpack',  desc: 'Increase carry cap',   max: Infinity, base: 60,  scale: 5, baseLevel: 40 },
@@ -257,22 +264,22 @@ export const upgrades = {
   drill:    { key: 'drill',     name: 'Drill Expander',    desc: 'Mine more blocks',     step: 1,    max: 5,      baseLevel: 1,    price: level => (level + 1) * 500 }
 };
 
-export function priceFor(u) {
+export function priceFor(u: Upgrade): number {
   const cur = player[u.key];
   if (u.key === 'carryCap') {
-    const level = Math.round(Math.log2(cur / u.baseLevel));
-    return Math.round(u.base * Math.pow(u.scale, level));
+    const level = Math.round(Math.log2(cur / (u.baseLevel ?? 1)));
+    return Math.round((u.base ?? 0) * Math.pow(u.scale ?? 1, level));
   }
   const baseLevel = u.baseLevel !== undefined ? u.baseLevel : 0;
-  const level = Math.round((cur - baseLevel) / u.step);
+  const level = Math.round((cur - baseLevel) / (u.step ?? 1));
   if (typeof u.price === 'function') return Math.round(u.price(level));
-  return Math.round(u.base * Math.pow(u.scale, level));
+  return Math.round((u.base ?? 0) * Math.pow(u.scale ?? 1, level));
 }
 
-export function buy(u) {
+export function buy(u: Upgrade) {
   const cost = priceFor(u);
   if (player.cash < cost) { say('Not enough cash'); return; }
-  const next = u.key === 'carryCap' ? player[u.key] * 2 : +(player[u.key] + u.step).toFixed(2);
+  const next = u.key === 'carryCap' ? player[u.key] * 2 : +(player[u.key] + (u.step ?? 0)).toFixed(2);
   if (next > u.max) { say('Maxed'); return; }
   player.cash -= cost;
   player[u.key] = next;
