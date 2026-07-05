@@ -21,7 +21,7 @@ const BASE_PLAYER: Player = {
   staminaMax: 100,
   carryCap: 40,
   pickPower: 2,
-  speed: 0.3,
+  speed: 0.12,
   drill: 1,
   inventory: [],
   pages: {},
@@ -271,7 +271,7 @@ export function softReset() {
 
 export const upgrades: Record<string, Upgrade> = {
   pickaxe:  { key: 'pickPower', name: 'Pickaxe',           desc: 'Mine harder materials', step: 1,    max: 10,  base: 50,  scale: 1.6,  baseLevel: 0 },
-  boots:    { key: 'speed',     name: 'Boots',             desc: 'Move faster',          step: 0.10, max: 2.0, base: 80,  scale: 1.5,  baseLevel: 0.3 },
+  boots:    { key: 'speed',     name: 'Boots',             desc: 'Move faster',          step: 0.10, max: 2.0, base: 80,  scale: 1.5,  baseLevel: 0.12 },
   backpack: { key: 'carryCap',  name: 'Leather Backpack',  desc: 'Increase carry cap',   max: Infinity, base: 60,  scale: 5, baseLevel: 40 },
   lungs:    { key: 'staminaMax', name: 'Lung Expansion Pills', desc: 'Increase stamina',   step: 20,   max: Infinity, baseLevel: 100, price: level => 150 * Math.pow(level + 1, 1.3) },
   drill:    { key: 'drill',     name: 'Drill Expander',    desc: 'Mine more blocks',     step: 1,    max: 5,      baseLevel: 1,    price: level => (level + 1) * 500 }

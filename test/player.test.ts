@@ -10,7 +10,7 @@ import {
 function resetPlayer() {
   Object.assign(player, {
     cash: 0, stamina: 100, staminaMax: 100, carryCap: 40,
-    pickPower: 2, speed: 0.3, drill: 1, forgeLevel: 0, ascensions: 0,
+    pickPower: 2, speed: 0.12, drill: 1, forgeLevel: 0, ascensions: 0,
   });
   player.inventory = [];
   player.forgeQueue = [];
