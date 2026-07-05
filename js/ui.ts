@@ -1,4 +1,5 @@
-import type {Player, Material, Upgrade, MaterialId, Building, BuildingCost} from './types';
+import type {Player, Material, Upgrade, MaterialId, Building, BuildingCost, ForgeJob, ForgeStatus} from './types';
+import {hammerUrl} from './sprites';
 
 // Typed element lookup: throws if the id is missing so refs are never null.
 export function el<T extends HTMLElement = HTMLElement>(id: string): T {
@@ -189,15 +190,16 @@ export function openMarket(
 export function renderBuilder(
   player: Player,
   MATERIALS: Material[],
-  BUILDING_COSTS: Record<string, BuildingCost>,
+  costFor: (kind: string) => BuildingCost | null,
   buildings: Building[],
   contribute: (kind: string) => void,
 ) {
   const items: { kind: string; name: string; cost: BuildingCost }[] = [];
-  if (player.forgeLevel === 0) items.push({ kind: 'forge', name: 'Forge', cost: BUILDING_COSTS.forge });
-  else items.push({ kind: 'forgeUpgrade', name: 'Forge Upgrade', cost: BUILDING_COSTS.forgeUpgrade });
+  const push = (kind: string, name: string) => { const c = costFor(kind); if (c) items.push({ kind, name, cost: c }); };
+  if (player.forgeLevel === 0) push('forge', 'Forge');
+  else push('forgeUpgrade', `Forge Upgrade → Lv ${player.forgeLevel + 1}`);
   const hasWarehouse = buildings.some(b => b.kind === 'warehouse');
-  if (!hasWarehouse && player.forgeLevel > 0) items.push({ kind: 'warehouse', name: 'Warehouse', cost: BUILDING_COSTS.warehouse });
+  if (!hasWarehouse && player.forgeLevel > 0) push('warehouse', 'Warehouse');
   builderBody.innerHTML = items.map(it => {
     const prog = player.buildingProgress[it.kind] || { materials: {}, cash: 0 };
     const matLines = Object.entries(it.cost.materials || {}).map(([id, amt]) => {
@@ -213,69 +215,156 @@ export function renderBuilder(
     </div>`;
   }).join('');
   builderBody.querySelectorAll<HTMLElement>('button.build').forEach(btn => {
-    btn.onclick = () => { const kind = btn.getAttribute('data-kind'); if (kind) contribute(kind); renderBuilder(player, MATERIALS, BUILDING_COSTS, buildings, contribute); };
+    btn.onclick = () => { const kind = btn.getAttribute('data-kind'); if (kind) contribute(kind); renderBuilder(player, MATERIALS, costFor, buildings, contribute); };
   });
 }
 
 export function openBuilder(
   player: Player,
   MATERIALS: Material[],
-  BUILDING_COSTS: Record<string, BuildingCost>,
+  costFor: (kind: string) => BuildingCost | null,
   buildings: Building[],
   contribute: (kind: string) => void,
 ) {
-  renderBuilder(player, MATERIALS, BUILDING_COSTS, buildings, contribute);
+  renderBuilder(player, MATERIALS, costFor, buildings, contribute);
   openModal(builderModal);
 }
 
-export function renderForge(
-  player: Player,
-  MATERIALS: Material[],
-  BAR_MAP: Record<MaterialId, MaterialId>,
-  queueSmelt: (oreId: MaterialId) => void,
-) {
-  const ores = player.inventory.filter(it => MATERIALS[it.id].ore && it.qty >= 10);
-  const oreLines = ores.map(it => {
-    const m = MATERIALS[it.id];
-    const bar = MATERIALS[BAR_MAP[it.id]];
-    return `<div class='list-row'>
-      <div>
-        <div class='font-medium'>${m.name}</div>
-        <div class='text-xs muted'>10 → ${bar.name}</div>
+// ---- Forge -----------------------------------------------------------------
+// One column per smeltable ore. The DOM structure is rebuilt only on discrete
+// changes (open, click, job completion); the per-frame tick nudges progress-bar
+// widths and time labels only — never innerHTML — so button nodes stay alive and
+// clicks always complete. (The old bug: a 60fps innerHTML rebuild destroyed the
+// Smelt button mid-press, so the click never fired.)
+export interface ForgeApi {
+  smelt: (id: MaterialId) => void;
+  hammer: (id: MaterialId) => void;
+  raiseHammer: () => void;
+  raiseTemp: () => void;
+  status: () => ForgeStatus;
+  activeJobs: () => ForgeJob[];
+}
+
+let forgeState: {
+  player: Player;
+  MATERIALS: Material[];
+  BAR_MAP: Record<MaterialId, MaterialId>;
+  api: ForgeApi;
+} | null = null;
+let forgeDelegated = false;
+
+const hammerIcon = hammerUrl
+  ? `<img src='${hammerUrl}' alt='hammer' style='width:18px;height:18px;image-rendering:pixelated'>`
+  : '🔨';
+
+export function renderForge() {
+  if (!forgeState) return;
+  const { player, MATERIALS, BAR_MAP, api } = forgeState;
+  const status = api.status();
+  const active = api.activeJobs();
+
+  // Columns = ores you can smelt (>=10 held) OR that already have a job queued.
+  const ids = new Set<MaterialId>();
+  for (const it of player.inventory) if (MATERIALS[it.id].ore && it.qty >= 10) ids.add(it.id);
+  for (const j of player.forgeQueue) ids.add(j.id);
+  const oreIds = Array.from(ids).sort((a, b) => a - b);
+
+  const cols = oreIds.map(id => {
+    const m = MATERIALS[id];
+    const bar = MATERIALS[BAR_MAP[id]];
+    const held = player.inventory.find(it => it.id === id)?.qty ?? 0;
+    const jobs = player.forgeQueue.filter(j => j.id === id);
+    const activeJob = jobs.find(j => active.includes(j));
+    const waiting = jobs.length - (activeJob ? 1 : 0);
+    const ratio = activeJob ? 1 - activeJob.time / (activeJob.total || 1) : 0;
+    const timeLabel = activeJob ? Math.max(0, activeJob.time).toFixed(1) + 's' : '—';
+    return `<div class='forge-col'>
+      <div class='font-medium'>${m.name}</div>
+      <div class='text-2xs muted'>10 → ${bar.name}</div>
+      <div class='progress'><div class='progress__fill' data-fill='${id}' style='width:${(ratio * 100).toFixed(1)}%'></div></div>
+      <div class='text-xs forge-col__meta'>
+        <span data-time='${id}'>${timeLabel}</span>
+        <span class='muted'>${waiting > 0 ? '×' + waiting + ' queued' : ''}</span>
       </div>
-      <button data-id='${it.id}' class='smelt btn'>Smelt</button>
+      <div class='forge-col__actions'>
+        <button data-action='smelt' data-id='${id}' class='btn btn-sm btn-block${held >= 10 ? '' : ' is-disabled'}'>Smelt</button>
+        <button data-action='hammer' data-id='${id}' class='hammer-btn${activeJob ? '' : ' is-disabled'}' title='-${status.hammerPct}% of bar'>${hammerIcon}</button>
+      </div>
     </div>`;
   }).join('');
-  let progressHTML = '';
-  if (player.forgeQueue.length > 0) {
-    const job = player.forgeQueue[0];
-    const m = MATERIALS[job.id];
-    const bar = MATERIALS[BAR_MAP[job.id]];
-    const total = job.total || 1;
-    const ratio = 1 - job.time / total;
-    progressHTML = `<div>
-      <div class='text-xs' style='margin-bottom:4px'>Smelting ${m.name} → ${bar.name}</div>
-      <div class='progress'><div class='progress__fill' style='width:${(ratio * 100).toFixed(1)}%'></div></div>
+
+  const grid = cols
+    ? `<div class='forge-grid'>${cols}</div>`
+    : `<div class='text-xs muted'>Mine 10+ of an ore to smelt it.</div>`;
+
+  let hammerHTML = '';
+  if (status.hammerUnlocked) {
+    const action = status.hammerMaxed
+      ? `<span class='text-xs accent'>MAX · instant</span>`
+      : `<button data-action='hammerup' class='btn btn-sm${status.hammerCanAfford ? '' : ' is-disabled'}'>Raise · $${status.hammerNextCost.toLocaleString()}</button>`;
+    hammerHTML = `<div class='list-row'>
+      <div>
+        <div class='font-medium'>🔨 Click Power — Lv ${status.hammerLevel}/${status.hammerMax}</div>
+        <div class='text-xs muted'>−${status.hammerPct}% of bar per click</div>
+      </div>
+      ${action}
     </div>`;
   }
-  const queueLines = player.forgeQueue.map((job, i) => {
-    const m = MATERIALS[job.id];
-    const bar = MATERIALS[BAR_MAP[job.id]];
-    return `<div class='text-xs'>${i + 1}. ${m.name} → ${bar.name}: ${job.time.toFixed(1)}s</div>`;
-  }).join('');
-  forgeBody.innerHTML = oreLines + progressHTML + `<div><div class='font-medium'>Queue</div>${queueLines || '<div class="text-xs muted">(empty)</div>'}</div>`;
-  forgeBody.querySelectorAll<HTMLElement>('button.smelt').forEach(btn => {
-    btn.onclick = () => { queueSmelt(Number(btn.getAttribute('data-id'))); renderForge(player, MATERIALS, BAR_MAP, queueSmelt); };
+
+  let tempHTML = '';
+  if (status.tempUnlocked) {
+    tempHTML = `<div class='list-row'>
+      <div>
+        <div class='font-medium'>🌡 Temperature — Lv ${status.tempLevel}</div>
+        <div class='text-xs muted'>−${status.tempReductionPct}% smelt time</div>
+      </div>
+      <button data-action='temp' class='btn btn-sm${status.tempCanAfford ? '' : ' is-disabled'}'>Raise · $${status.tempNextCost.toLocaleString()}</button>
+    </div>`;
+  }
+
+  const header = `<div class='text-xs muted'>Forge Lv ${status.level}${status.parallelUnlocked ? ' · parallel smelting' : ''}</div>`;
+
+  forgeBody.innerHTML = header + grid + hammerHTML + tempHTML;
+}
+
+// Per-frame: only mutate live progress widths + time labels on existing nodes.
+export function tickForgeView() {
+  if (!forgeState) return;
+  const byId = new Map<number, ForgeJob>();
+  for (const j of forgeState.api.activeJobs()) byId.set(j.id, j);
+  forgeBody.querySelectorAll<HTMLElement>('[data-fill]').forEach(elm => {
+    const j = byId.get(Number(elm.getAttribute('data-fill')));
+    if (j) elm.style.width = ((1 - j.time / (j.total || 1)) * 100).toFixed(1) + '%';
   });
+  forgeBody.querySelectorAll<HTMLElement>('[data-time]').forEach(elm => {
+    const j = byId.get(Number(elm.getAttribute('data-time')));
+    if (j) elm.textContent = Math.max(0, j.time).toFixed(1) + 's';
+  });
+}
+
+function onForgeClick(e: MouseEvent) {
+  if (!forgeState) return;
+  const t = (e.target as HTMLElement).closest<HTMLElement>('[data-action]');
+  if (!t || t.classList.contains('is-disabled')) return;
+  const action = t.getAttribute('data-action');
+  const id = t.getAttribute('data-id');
+  if (action === 'smelt' && id) forgeState.api.smelt(Number(id));
+  else if (action === 'hammer' && id) forgeState.api.hammer(Number(id));
+  else if (action === 'hammerup') forgeState.api.raiseHammer();
+  else if (action === 'temp') forgeState.api.raiseTemp();
+  renderForge();
 }
 
 export function openForge(
   player: Player,
   MATERIALS: Material[],
   BAR_MAP: Record<MaterialId, MaterialId>,
-  queueSmelt: (oreId: MaterialId) => void,
+  api: ForgeApi,
 ) {
-  renderForge(player, MATERIALS, BAR_MAP, queueSmelt);
+  forgeState = { player, MATERIALS, BAR_MAP, api };
+  // Delegate on the stable parent once — survives child rebuilds so clicks land.
+  if (!forgeDelegated) { forgeBody.onclick = onForgeClick; forgeDelegated = true; }
+  renderForge();
   openModal(forgeModal);
 }
 

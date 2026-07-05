@@ -7,7 +7,7 @@ import {
 function baseState() {
   Object.assign(player, {
     ascensions: 0, ascensionUnlocked: false, ascensionPoints: 0,
-    cash: 0, forgeLevel: 0, pickPower: 2, carryCap: 40,
+    cash: 0, forgeLevel: 0, forgeTemp: 0, forgeHammer: 0, pickPower: 2, carryCap: 40,
   });
   player.ascensionUpgrades = {};
   player.pages = {};
@@ -31,6 +31,8 @@ describe('reset mechanics', () => {
     invAdd(4, 20);
     storeInWarehouse(4);
     player.forgeLevel = 3;
+    player.forgeTemp = 2;
+    player.forgeHammer = 4;
     player.forgeQueue.push({ id: 4, time: 5, total: 10 });
     player.buildingProgress = { forge: { materials: {}, cash: 100 } };
 
@@ -44,6 +46,8 @@ describe('reset mechanics', () => {
     expect(player.inventory).toEqual([]);
     expect(player.warehouse).toEqual([]);
     expect(player.forgeLevel).toBe(0);
+    expect(player.forgeTemp).toBe(0);
+    expect(player.forgeHammer).toBe(0);
     expect(player.forgeQueue).toEqual([]);
     expect(player.buildingProgress).toEqual({});
     expect(player.pickPower).toBe(2); // shop-upgrade stat back to base

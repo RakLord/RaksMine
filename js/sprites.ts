@@ -25,3 +25,15 @@ for (const [path, url] of Object.entries(urls)) {
   img.src = url;
   tileSprites[id] = img;
 }
+
+// UI art loader. Drop PNGs into `assets/ui/`; a missing dir/file just resolves to
+// undefined (the UI falls back to an emoji), so the build never breaks on a missing asset.
+const uiUrls = import.meta.glob('/assets/ui/*.png', {
+  eager: true,
+  query: '?url',
+  import: 'default',
+}) as Record<string, string>;
+
+// Blacksmith hammer used by the forge's manual speed-up button. Optional.
+export const hammerUrl: string | undefined =
+  Object.entries(uiUrls).find(([p]) => /hammer\.png$/.test(p))?.[1];

@@ -2,8 +2,8 @@ import {TILE, MAP_W, MAP_H, MOVE_ACC, GRAV, FRICTION} from './config';
 import {MATERIALS, BAR_MAP} from './materials';
 import {world, worldToTile, isSolidAt, generateWorld} from './world';
 import {resolvePlayerMovement} from './physics';
-import {el, canvas, ctx, statsEl, say, closeAllModals, closeModal, isUIOpen, openInventory, openShop, openMarket, marketModal, saveBtn, loadBtn, loadInput, staminaBar, staminaFill, weightBar, weightFill, openModal, ascendModal, ascendBtn, settingsBtn, settingsModal, autosaveRange, autosaveLabel, toastXInput, toastYInput, keybindsTable, hardResetBtn, toastWrap, ascendCostText, openBuilder, openForge, openWarehouse, renderForge, forgeModal} from './ui';
-import {player, buildings, rectsIntersect, totalWeight, invAdd, teleportHome, upgrades, priceFor, buy, sellItem, sellAll, inventoryValue, ASCENSION_BUILDING, ascend, ascensionCost, BUILDING_COSTS, contributeBuilding, queueSmelt, storeInWarehouse, takeFromWarehouse, regenStamina} from './player';
+import {el, canvas, ctx, statsEl, say, closeAllModals, closeModal, isUIOpen, openInventory, openShop, openMarket, marketModal, saveBtn, loadBtn, loadInput, staminaBar, staminaFill, weightBar, weightFill, openModal, ascendModal, ascendBtn, settingsBtn, settingsModal, autosaveRange, autosaveLabel, toastXInput, toastYInput, keybindsTable, hardResetBtn, toastWrap, ascendCostText, openBuilder, openForge, openWarehouse, renderForge, tickForgeView, forgeModal} from './ui';
+import {player, buildings, rectsIntersect, totalWeight, invAdd, teleportHome, upgrades, priceFor, buy, sellItem, sellAll, inventoryValue, ASCENSION_BUILDING, ascend, ascensionCost, buildingCost, contributeBuilding, queueSmelt, hammerSmelt, raiseHammer, raiseTemperature, forgeStatus, activeJobs, storeInWarehouse, takeFromWarehouse, regenStamina} from './player';
 import {tileSprites} from './sprites';
 import {setupPages} from './pages';
 import {setupAscensionShop} from './ascension';
@@ -138,22 +138,33 @@ function resolveCollisions() {
 
 const camera = { x: 0, y: 0 };
 
+const forgeApi = {
+  smelt: queueSmelt,
+  hammer: hammerSmelt,
+  raiseHammer,
+  raiseTemp: raiseTemperature,
+  status: forgeStatus,
+  activeJobs,
+};
+
 function updateForge() {
-  if (player.forgeQueue.length === 0) {
-    if (!forgeModal.classList.contains('hidden'))
-      renderForge(player, MATERIALS, BAR_MAP, queueSmelt);
-    return;
+  let completed = false;
+  for (const job of activeJobs()) {
+    job.time -= 1 / 60;
+    if (job.time <= 0) {
+      const barId = BAR_MAP[job.id];
+      invAdd(barId, 1);
+      const idx = player.forgeQueue.indexOf(job);
+      if (idx !== -1) player.forgeQueue.splice(idx, 1);
+      say('Smelted ' + MATERIALS[barId].name + '.');
+      completed = true;
+    }
   }
-  const job = player.forgeQueue[0];
-  job.time -= 1 / 60;
-  if (job.time <= 0) {
-    const barId = BAR_MAP[job.id];
-    invAdd(barId, 1);
-    player.forgeQueue.shift();
-    say('Smelted ' + MATERIALS[barId].name + '.');
+  if (!forgeModal.classList.contains('hidden')) {
+    // Rebuild structure only when a job finished (columns/queue changed); otherwise
+    // just nudge the live bars so button nodes survive and clicks land.
+    if (completed) renderForge(); else tickForgeView();
   }
-  if (!forgeModal.classList.contains('hidden'))
-    renderForge(player, MATERIALS, BAR_MAP, queueSmelt);
 }
 
 function tick() {
@@ -172,8 +183,8 @@ function tick() {
       const asc = buildings.find(b => b.kind === 'ascension');
       if (market && rectsIntersect(player, market)) openMarket(player, MATERIALS, sellItem, sellAll, inventoryValue);
       else if (shop && rectsIntersect(player, shop)) openShop(player, upgrades, priceFor, buy);
-      else if (builder && rectsIntersect(player, builder)) openBuilder(player, MATERIALS, BUILDING_COSTS, buildings, contributeBuilding);
-      else if (forge && rectsIntersect(player, forge)) openForge(player, MATERIALS, BAR_MAP, queueSmelt);
+      else if (builder && rectsIntersect(player, builder)) openBuilder(player, MATERIALS, buildingCost, buildings, contributeBuilding);
+      else if (forge && rectsIntersect(player, forge)) openForge(player, MATERIALS, BAR_MAP, forgeApi);
       else if (warehouse && rectsIntersect(player, warehouse)) openWarehouse(player, MATERIALS, storeInWarehouse, takeFromWarehouse);
       else if (asc && rectsIntersect(player, asc)) { ascendCostText.textContent = ascensionCost().toLocaleString(); openModal(ascendModal); }
       else say('No one nearby.');

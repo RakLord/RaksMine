@@ -214,6 +214,34 @@ button.panel:hover { background: var(--stone-600); }
 }
 .progress__fill { height: 100%; background: var(--amber); transition: width .1s linear; }
 
+/* ---------- forge columns ---------- */
+.forge-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(120px, 1fr));
+  gap: var(--sp-2);
+}
+.forge-col {
+  display: flex; flex-direction: column; gap: var(--sp-1);
+  border: 1px solid var(--border);
+  border-radius: var(--r-md);
+  padding: var(--sp-2);
+}
+.forge-col__meta { display: flex; justify-content: space-between; align-items: center; }
+.forge-col__actions { display: flex; align-items: stretch; gap: var(--sp-1); margin-top: var(--sp-1); }
+.forge-col__actions .btn { flex: 1; }
+.hammer-btn {
+  display: inline-flex; align-items: center; justify-content: center;
+  padding: var(--sp-1) var(--sp-2);
+  background: var(--stone-800);
+  border: 1px solid var(--border-strong);
+  border-radius: var(--r-sm);
+  cursor: pointer; line-height: 1;
+  transition: background .12s ease, transform .05s ease;
+}
+.hammer-btn:hover { background: var(--stone-600); }
+.hammer-btn:active { transform: translateY(1px) rotate(-12deg); }
+.hammer-btn.is-disabled { opacity: .4; cursor: not-allowed; }
+
 /* ---------- text helpers ---------- */
 .muted { color: var(--text-muted); }
 .text-xs { font-size: 12px; }
