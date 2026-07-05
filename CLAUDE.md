@@ -144,6 +144,14 @@ ascension upgrade multiplies it (inert while the base is 0). Regen currently app
 each frame; idle-only / not-while-mining gating is a future balance lever. Covered by
 `test/stamina.test.ts`.
 
+## Collision / falling (fixed)
+Player movement is resolved by `resolvePlayerMovement(player, isSolidAt)` in `js/physics.ts`, called
+from `resolveCollisions()` in `tick()`. It **sweeps** the move in sub-steps of `TILE*0.5` and runs the
+edge checks each sub-step, so fast falls can't tunnel through thin floors / air pockets. **Fall speed
+stays uncapped** by design (respecting the gravity revamp) — sub-stepping fixes tunneling without
+limiting velocity. Slow movement (|v| ≤ half a tile) runs as a single step, identical to before.
+Covered by `test/physics.test.ts` (incl. a `vy=300` no-tunnel regression).
+
 ## Known issues & rough edges (backlog)
 Remaining half-wired/unbalanced logic, **not yet fixed**:
 
@@ -151,16 +159,11 @@ Remaining half-wired/unbalanced logic, **not yet fixed**:
    **no max level** so smelt time `10/2^(level-1)` (`js/player.ts:159`) → ~0; Warehouse has **no
    capacity cap** (`storeInWarehouse` pulls `Infinity`, `js/player.ts:164`). Worth a deliberate pass
    on ascension cost curve, upgrade caps, and bar/ore values (`materials.ts`).
-2. **Uncapped fall speed → tunneling.** The gravity revamp removed the `vy` clamp; `resolveCollisions()`
-   (`js/main.ts:113`) does a single non-swept `y += vy` and only tests the destination cell. On long
-   drops `vy` exceeds a tile (24px) and you tunnel through thin floors / the air pockets world-gen
-   randomly punches (`js/world.ts:36`). *Fix direction:* cap `vy` to < `TILE`, or sweep the
-   collision.
-3. **Forge UI re-renders 60×/second while open** (`js/main.ts:127` → `renderForge`), even with an
+2. **Forge UI re-renders 60×/second while open** (`js/main.ts:127` → `renderForge`), even with an
    empty queue — rebuilds `innerHTML` + rebinds handlers every frame. Wasteful; render on change.
-4. **All new buildings share one color.** `draw()` (`js/main.ts:209`) only special-cases shop
+3. **All new buildings share one color.** `draw()` (`js/main.ts:209`) only special-cases shop
    (blue) and market (purple); builder/forge/warehouse/ascension all render green.
-5. **Save format is unversioned.** `js/save.ts` `Object.assign(player, state.player)` loads any
+4. **Save format is unversioned.** `js/save.ts` `Object.assign(player, state.player)` loads any
    stored fields with no schema/version guard. Adding/removing `player` fields can silently corrupt
    old saves — add migration logic when you change the shape.
 
