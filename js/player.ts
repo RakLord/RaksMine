@@ -39,7 +39,18 @@ const BASE_PLAYER: Player = {
   warehouse: []
 };
 
-export const player: Player = { ...BASE_PLAYER };
+// Deep copy so `player` never shares array/object references with BASE_PLAYER —
+// otherwise gameplay mutations would pollute the template and resets wouldn't be clean.
+function freshPlayer(): Player { return structuredClone(BASE_PLAYER); }
+
+export const player: Player = freshPlayer();
+
+// The only state that survives an ascension. Everything else resets to a fresh player.
+// Future upgrades will conditionally extend this (e.g. keep buildings/warehouse).
+const PERSIST_ACROSS_ASCENSION = [
+  'ascensions', 'ascensionUnlocked', 'holdToMine',
+  'pages', 'equippedPages', 'ascensionPoints', 'ascensionUpgrades',
+] as const satisfies readonly (keyof Player)[];
 
 export const BASE_BUILDINGS: Building[] = [
   { x: TILE * 8,  y: TILE * 5 - TILE * 2, w: TILE * 3, h: TILE * 2, kind: 'shop',    name: 'Shop' },
@@ -196,15 +207,25 @@ export function teleportHome() {
 }
 
 function resetPlayerStats() {
-  // TODO(stage5): this preserves only ascension/pages/upgrade fields — it drops
-  // warehouse, forgeLevel, forgeQueue, and buildingProgress. Combined with the
-  // buildings reset in ascend()/softReset(), every prestige destroys the Forge,
-  // the Warehouse, and everything stored in it. Decide an explicit
-  // persist-across-ascension boundary and keep those fields.
-  const { ascensions, ascensionUnlocked, holdToMine, pages, equippedPages, ascensionPoints, ascensionUpgrades } = player;
-  Object.assign(player, { ...BASE_PLAYER, ascensions, ascensionUnlocked, holdToMine, pages, equippedPages, ascensionPoints, ascensionUpgrades });
-  player.inventory = [];
+  // Reset to a pristine player, then restore only the fields that survive an ascension.
+  const preserved: Partial<Player> = {};
+  for (const key of PERSIST_ACROSS_ASCENSION) preserved[key] = player[key] as never;
+  Object.assign(player, freshPlayer(), preserved);
   applyAscensionUpgrades(player);
+}
+
+// Shared by ascend() and softReset(): regenerate the world and rebuild the surface
+// buildings. Forge/Warehouse are intentionally NOT re-added — they reset with the run.
+// (Future persist-upgrades will extend PERSIST_ACROSS_ASCENSION and rebuild buildings here.)
+function rebuildWorldAndBuildings() {
+  generateWorld(player.ascensions, player.equippedPages);
+  buildings.length = 0;
+  buildings.push(...BASE_BUILDINGS);
+  if (player.ascensionUnlocked || player.ascensions > 0) {
+    player.ascensionUnlocked = true;
+    buildings.push({ ...ASCENSION_BUILDING });
+  }
+  teleportHome();
 }
 
 export function ascensionCost() {
@@ -227,14 +248,7 @@ export function ascend() {
   player.ascensionPoints += player.ascensions;
   player.cash = 0;
   resetPlayerStats();
-  generateWorld(player.ascensions, player.equippedPages);
-  buildings.length = 0;
-  buildings.push(...BASE_BUILDINGS);
-  if (player.ascensionUnlocked || player.ascensions > 0) {
-    player.ascensionUnlocked = true;
-    buildings.push({ ...ASCENSION_BUILDING });
-  }
-  teleportHome();
+  rebuildWorldAndBuildings();
   const pg = awardRandomPage(player);
   say('The world has been reborn.');
   say('Gained ' + player.ascensions + ' ascension points.');
@@ -244,14 +258,7 @@ export function ascend() {
 
 export function softReset() {
   resetPlayerStats();
-  generateWorld(player.ascensions, player.equippedPages);
-  buildings.length = 0;
-  buildings.push(...BASE_BUILDINGS);
-  if (player.ascensionUnlocked || player.ascensions > 0) {
-    player.ascensionUnlocked = true;
-    buildings.push({ ...ASCENSION_BUILDING });
-  }
-  teleportHome();
+  rebuildWorldAndBuildings();
   say('The world has been refreshed.');
   return true;
 }
