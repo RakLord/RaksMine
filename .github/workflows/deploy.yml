@@ -24,7 +24,10 @@ jobs:
         with:
           node-version: 20
           cache: npm
-      - run: npm ci
+      # npm install (not ci): the lockfile omits esbuild's per-platform optional
+      # binaries for the Vitest-pulled esbuild version, which makes `npm ci` fail
+      # its strict validation. install resolves the correct runner binary.
+      - run: npm install
       - run: npm run build
       - uses: actions/upload-pages-artifact@v3
         with:
