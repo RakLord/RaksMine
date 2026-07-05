@@ -1,4 +1,5 @@
-import type {Player, Material, Upgrade, MaterialId, Building, BuildingCost} from './types';
+import type {Player, Material, Upgrade, MaterialId, Building, BuildingCost, ForgeJob, ForgeStatus} from './types';
+import {hammerUrl} from './sprites';
 
 // Typed element lookup: throws if the id is missing so refs are never null.
 export function el<T extends HTMLElement = HTMLElement>(id: string): T {
@@ -28,6 +29,7 @@ const builderBody = el('builderBody');
 export const forgeModal = el('forgeModal');
 const forgeBody = el('forgeBody');
 export const warehouseModal = el('warehouseModal');
+export const pagesModal = el('pagesModal');
 const warehousePlayerInv = el('warehousePlayerInv');
 const warehouseInv = el('warehouseInv');
 export const saveBtn = el('saveBtn');
@@ -61,7 +63,7 @@ settingsClose.onclick = () => closeAllModals();
 
 export function say(text: string) {
   const el = document.createElement('div');
-  el.className = 'pointer-events-auto select-none bg-slate-900/95 border border-slate-700 shadow-lg rounded-lg px-3 py-2 text-sm flex items-center gap-2';
+  el.className = 'toast';
   el.textContent = text;
   toastWrap.appendChild(el);
   setTimeout(() => {
@@ -73,8 +75,9 @@ export function say(text: string) {
 
 export function openModal(el: HTMLElement) { el.classList.remove('hidden'); el.classList.add('flex'); }
 export function closeModal(el: HTMLElement) { el.classList.add('hidden'); el.classList.remove('flex'); }
-export function closeAllModals() { closeModal(shopModal); closeModal(invModal); closeModal(marketModal); closeModal(builderModal); closeModal(forgeModal); closeModal(warehouseModal); closeModal(ascendModal); closeModal(ascShopModal); closeModal(settingsModal); }
-export function isUIOpen() { return !shopModal.classList.contains('hidden') || !invModal.classList.contains('hidden') || !marketModal.classList.contains('hidden') || !builderModal.classList.contains('hidden') || !forgeModal.classList.contains('hidden') || !warehouseModal.classList.contains('hidden') || !ascendModal.classList.contains('hidden') || !ascShopModal.classList.contains('hidden') || !settingsModal.classList.contains('hidden'); }
+export function closeAllModals() { closeModal(shopModal); closeModal(invModal); closeModal(marketModal); closeModal(builderModal); closeModal(forgeModal); closeModal(warehouseModal); closeModal(ascendModal); closeModal(ascShopModal); closeModal(pagesModal); closeModal(settingsModal); }
+export function isUIOpen() { return isOpen(shopModal) || isOpen(invModal) || isOpen(marketModal) || isOpen(builderModal) || isOpen(forgeModal) || isOpen(warehouseModal) || isOpen(ascendModal) || isOpen(ascShopModal) || isOpen(pagesModal) || isOpen(settingsModal); }
+function isOpen(el: HTMLElement) { return !el.classList.contains('hidden'); }
 
 export function renderInventory(player: Player, MATERIALS: Material[]) {
   const counts = new Map<MaterialId, number>();
@@ -87,13 +90,13 @@ export function renderInventory(player: Player, MATERIALS: Material[]) {
     const m = MATERIALS[id];
     const total = m.value * qty;
     totalVal += total;
-    return `<div class='border border-slate-700 rounded-lg p-2 flex flex-col items-start'>
-      <div class='w-5 h-5 rounded-sm mb-1' style='background:${m.color || "transparent"}'></div>
+    return `<div class='tile'>
+      <div class='tile__swatch' style='background:${m.color || "transparent"}'></div>
       <div class='text-xs font-medium'>${m.name}</div>
-      <div class='text-[11px] text-slate-400'>x${qty} @ $${m.value} = $${total}</div>
+      <div class='text-2xs muted'>x${qty} @ $${m.value} = $${total}</div>
     </div>`;
   });
-  while (cells.length < 16) cells.push(`<div class='border border-dashed border-slate-700 rounded-lg p-2 h-[52px]'></div>`);
+  while (cells.length < 16) cells.push(`<div class='tile tile--empty'></div>`);
   invGrid.innerHTML = cells.join('');
   invTotal.textContent = 'Total Value: $' + totalVal;
 }
@@ -116,15 +119,15 @@ export function renderShop(
       ? Math.min(u.max, cur * 2)
       : Math.min(u.max, +(cur + (u.step ?? 0)).toFixed(2));
     const cost = priceFor(u);
-    const disabled = (nxt <= cur || player.cash < cost) ? 'opacity-50 cursor-not-allowed' : '';
+    const disabled = (nxt <= cur || player.cash < cost) ? 'is-disabled' : '';
     return `
-      <div class='flex items-center justify-between gap-3 rounded-xl border border-slate-700 p-3'>
+      <div class='list-row'>
         <div>
           <div class='font-medium'>${u.name}</div>
-          <div class='text-slate-400 text-xs'>${u.desc}</div>
-          <div class='text-xs mt-1'>Current: <span class='text-slate-200'>${cur}</span> → Next: <span class='text-slate-200'>${nxt}</span></div>
+          <div class='muted text-xs'>${u.desc}</div>
+          <div class='text-xs'>Current: <span class='accent'>${cur}</span> → Next: <span class='accent'>${nxt}</span></div>
         </div>
-        <button data-key='${u.key}' class='buy px-3 py-1.5 rounded-md border border-slate-600 ${disabled}'>$${cost}</button>
+        <button data-key='${u.key}' class='buy btn ${disabled}'>$${cost}</button>
       </div>`;
   }).join('');
   shopBody.querySelectorAll<HTMLElement>('button.buy').forEach(btn => {
@@ -158,12 +161,12 @@ export function renderMarket(
     const m = MATERIALS[it.id];
     const total = m.value * it.qty;
     return `
-      <div class='flex items-center justify-between gap-3 rounded-xl border border-slate-700 p-3'>
+      <div class='list-row'>
         <div>
           <div class='font-medium'>${m.name}</div>
-          <div class='text-xs text-slate-400'>x${it.qty} @ $${m.value} = $${total}</div>
+          <div class='text-xs muted'>x${it.qty} @ $${m.value} = $${total}</div>
         </div>
-        <button data-id='${it.id}' class='sell px-3 py-1.5 rounded-md border border-slate-600'>Sell</button>
+        <button data-id='${it.id}' class='sell btn'>Sell</button>
       </div>`;
   }).join('');
   marketBody.querySelectorAll<HTMLElement>('button.sell').forEach(btn => {
@@ -187,15 +190,16 @@ export function openMarket(
 export function renderBuilder(
   player: Player,
   MATERIALS: Material[],
-  BUILDING_COSTS: Record<string, BuildingCost>,
+  costFor: (kind: string) => BuildingCost | null,
   buildings: Building[],
   contribute: (kind: string) => void,
 ) {
   const items: { kind: string; name: string; cost: BuildingCost }[] = [];
-  if (player.forgeLevel === 0) items.push({ kind: 'forge', name: 'Forge', cost: BUILDING_COSTS.forge });
-  else items.push({ kind: 'forgeUpgrade', name: 'Forge Upgrade', cost: BUILDING_COSTS.forgeUpgrade });
+  const push = (kind: string, name: string) => { const c = costFor(kind); if (c) items.push({ kind, name, cost: c }); };
+  if (player.forgeLevel === 0) push('forge', 'Forge');
+  else push('forgeUpgrade', `Forge Upgrade → Lv ${player.forgeLevel + 1}`);
   const hasWarehouse = buildings.some(b => b.kind === 'warehouse');
-  if (!hasWarehouse && player.forgeLevel > 0) items.push({ kind: 'warehouse', name: 'Warehouse', cost: BUILDING_COSTS.warehouse });
+  if (!hasWarehouse && player.forgeLevel > 0) push('warehouse', 'Warehouse');
   builderBody.innerHTML = items.map(it => {
     const prog = player.buildingProgress[it.kind] || { materials: {}, cash: 0 };
     const matLines = Object.entries(it.cost.materials || {}).map(([id, amt]) => {
@@ -204,76 +208,163 @@ export function renderBuilder(
       return `${mat.name}: ${have}/${amt}`;
     }).join('<br>');
     const cashLine = it.cost.cash ? `Cash: ${prog.cash}/${it.cost.cash}` : '';
-    return `<div class='border border-slate-700 rounded-xl p-3 space-y-1'>
+    return `<div class='tile' style='width:100%;gap:4px'>
       <div class='font-medium'>${it.name}</div>
-      <div class='text-xs text-slate-400'>${matLines}${cashLine ? '<br>' + cashLine : ''}</div>
-      <button data-kind='${it.kind}' class='build px-3 py-1.5 rounded-md border border-slate-600'>Contribute</button>
+      <div class='text-xs muted'>${matLines}${cashLine ? '<br>' + cashLine : ''}</div>
+      <button data-kind='${it.kind}' class='build btn'>Contribute</button>
     </div>`;
   }).join('');
   builderBody.querySelectorAll<HTMLElement>('button.build').forEach(btn => {
-    btn.onclick = () => { const kind = btn.getAttribute('data-kind'); if (kind) contribute(kind); renderBuilder(player, MATERIALS, BUILDING_COSTS, buildings, contribute); };
+    btn.onclick = () => { const kind = btn.getAttribute('data-kind'); if (kind) contribute(kind); renderBuilder(player, MATERIALS, costFor, buildings, contribute); };
   });
 }
 
 export function openBuilder(
   player: Player,
   MATERIALS: Material[],
-  BUILDING_COSTS: Record<string, BuildingCost>,
+  costFor: (kind: string) => BuildingCost | null,
   buildings: Building[],
   contribute: (kind: string) => void,
 ) {
-  renderBuilder(player, MATERIALS, BUILDING_COSTS, buildings, contribute);
+  renderBuilder(player, MATERIALS, costFor, buildings, contribute);
   openModal(builderModal);
 }
 
-export function renderForge(
-  player: Player,
-  MATERIALS: Material[],
-  BAR_MAP: Record<MaterialId, MaterialId>,
-  queueSmelt: (oreId: MaterialId) => void,
-) {
-  const ores = player.inventory.filter(it => MATERIALS[it.id].ore && it.qty >= 10);
-  const oreLines = ores.map(it => {
-    const m = MATERIALS[it.id];
-    const bar = MATERIALS[BAR_MAP[it.id]];
-    return `<div class='flex items-center justify-between gap-3 rounded-xl border border-slate-700 p-3'>
-      <div>
-        <div class='font-medium'>${m.name}</div>
-        <div class='text-xs text-slate-400'>10 → ${bar.name}</div>
+// ---- Forge -----------------------------------------------------------------
+// One column per smeltable ore. The DOM structure is rebuilt only on discrete
+// changes (open, click, job completion); the per-frame tick nudges progress-bar
+// widths and time labels only — never innerHTML — so button nodes stay alive and
+// clicks always complete. (The old bug: a 60fps innerHTML rebuild destroyed the
+// Smelt button mid-press, so the click never fired.)
+export interface ForgeApi {
+  smelt: (id: MaterialId) => void;
+  hammer: (id: MaterialId) => void;
+  raiseHammer: () => void;
+  raiseTemp: () => void;
+  status: () => ForgeStatus;
+  activeJobs: () => ForgeJob[];
+}
+
+let forgeState: {
+  player: Player;
+  MATERIALS: Material[];
+  BAR_MAP: Record<MaterialId, MaterialId>;
+  api: ForgeApi;
+} | null = null;
+let forgeDelegated = false;
+
+const hammerIcon = hammerUrl
+  ? `<img src='${hammerUrl}' alt='hammer' style='width:18px;height:18px;image-rendering:pixelated'>`
+  : '🔨';
+
+export function renderForge() {
+  if (!forgeState) return;
+  const { player, MATERIALS, BAR_MAP, api } = forgeState;
+  const status = api.status();
+  const active = api.activeJobs();
+
+  // Columns = ores you can smelt (>=10 held) OR that already have a job queued.
+  const ids = new Set<MaterialId>();
+  for (const it of player.inventory) if (MATERIALS[it.id].ore && it.qty >= 10) ids.add(it.id);
+  for (const j of player.forgeQueue) ids.add(j.id);
+  const oreIds = Array.from(ids).sort((a, b) => a - b);
+
+  const cols = oreIds.map(id => {
+    const m = MATERIALS[id];
+    const bar = MATERIALS[BAR_MAP[id]];
+    const held = player.inventory.find(it => it.id === id)?.qty ?? 0;
+    const jobs = player.forgeQueue.filter(j => j.id === id);
+    const activeJob = jobs.find(j => active.includes(j));
+    const waiting = jobs.length - (activeJob ? 1 : 0);
+    const ratio = activeJob ? 1 - activeJob.time / (activeJob.total || 1) : 0;
+    const timeLabel = activeJob ? Math.max(0, activeJob.time).toFixed(1) + 's' : '—';
+    return `<div class='forge-col'>
+      <div class='font-medium'>${m.name}</div>
+      <div class='text-2xs muted'>10 → ${bar.name}</div>
+      <div class='progress'><div class='progress__fill' data-fill='${id}' style='width:${(ratio * 100).toFixed(1)}%'></div></div>
+      <div class='text-xs forge-col__meta'>
+        <span data-time='${id}'>${timeLabel}</span>
+        <span class='muted'>${waiting > 0 ? '×' + waiting + ' queued' : ''}</span>
       </div>
-      <button data-id='${it.id}' class='smelt px-3 py-1.5 rounded-md border border-slate-600'>Smelt</button>
+      <div class='forge-col__actions'>
+        <button data-action='smelt' data-id='${id}' class='btn btn-sm btn-block${held >= 10 ? '' : ' is-disabled'}'>Smelt</button>
+        <button data-action='hammer' data-id='${id}' class='hammer-btn${activeJob ? '' : ' is-disabled'}' title='-${status.hammerPct}% of bar'>${hammerIcon}</button>
+      </div>
     </div>`;
   }).join('');
-  let progressHTML = '';
-  if (player.forgeQueue.length > 0) {
-    const job = player.forgeQueue[0];
-    const m = MATERIALS[job.id];
-    const bar = MATERIALS[BAR_MAP[job.id]];
-    const total = job.total || 1;
-    const ratio = 1 - job.time / total;
-    progressHTML = `<div class='mb-2'>
-      <div class='text-xs mb-1'>Smelting ${m.name} → ${bar.name}</div>
-      <div class='w-full h-2 bg-slate-700 rounded overflow-hidden'><div class='h-full bg-amber-500' style='width:${(ratio * 100).toFixed(1)}%'></div></div>
+
+  const grid = cols
+    ? `<div class='forge-grid'>${cols}</div>`
+    : `<div class='text-xs muted'>Mine 10+ of an ore to smelt it.</div>`;
+
+  let hammerHTML = '';
+  if (status.hammerUnlocked) {
+    const action = status.hammerMaxed
+      ? `<span class='text-xs accent'>MAX · instant</span>`
+      : `<button data-action='hammerup' class='btn btn-sm${status.hammerCanAfford ? '' : ' is-disabled'}'>Raise · $${status.hammerNextCost.toLocaleString()}</button>`;
+    hammerHTML = `<div class='list-row'>
+      <div>
+        <div class='font-medium'>🔨 Click Power — Lv ${status.hammerLevel}/${status.hammerMax}</div>
+        <div class='text-xs muted'>−${status.hammerPct}% of bar per click</div>
+      </div>
+      ${action}
     </div>`;
   }
-  const queueLines = player.forgeQueue.map((job, i) => {
-    const m = MATERIALS[job.id];
-    const bar = MATERIALS[BAR_MAP[job.id]];
-    return `<div class='text-xs'>${i + 1}. ${m.name} → ${bar.name}: ${job.time.toFixed(1)}s</div>`;
-  }).join('');
-  forgeBody.innerHTML = oreLines + progressHTML + `<div class='mt-4'><div class='font-medium mb-1'>Queue</div>${queueLines || '<div class="text-xs text-slate-400">(empty)</div>'}</div>`;
-  forgeBody.querySelectorAll<HTMLElement>('button.smelt').forEach(btn => {
-    btn.onclick = () => { queueSmelt(Number(btn.getAttribute('data-id'))); renderForge(player, MATERIALS, BAR_MAP, queueSmelt); };
+
+  let tempHTML = '';
+  if (status.tempUnlocked) {
+    tempHTML = `<div class='list-row'>
+      <div>
+        <div class='font-medium'>🌡 Temperature — Lv ${status.tempLevel}</div>
+        <div class='text-xs muted'>−${status.tempReductionPct}% smelt time</div>
+      </div>
+      <button data-action='temp' class='btn btn-sm${status.tempCanAfford ? '' : ' is-disabled'}'>Raise · $${status.tempNextCost.toLocaleString()}</button>
+    </div>`;
+  }
+
+  const header = `<div class='text-xs muted'>Forge Lv ${status.level}${status.parallelUnlocked ? ' · parallel smelting' : ''}</div>`;
+
+  forgeBody.innerHTML = header + grid + hammerHTML + tempHTML;
+}
+
+// Per-frame: only mutate live progress widths + time labels on existing nodes.
+export function tickForgeView() {
+  if (!forgeState) return;
+  const byId = new Map<number, ForgeJob>();
+  for (const j of forgeState.api.activeJobs()) byId.set(j.id, j);
+  forgeBody.querySelectorAll<HTMLElement>('[data-fill]').forEach(elm => {
+    const j = byId.get(Number(elm.getAttribute('data-fill')));
+    if (j) elm.style.width = ((1 - j.time / (j.total || 1)) * 100).toFixed(1) + '%';
   });
+  forgeBody.querySelectorAll<HTMLElement>('[data-time]').forEach(elm => {
+    const j = byId.get(Number(elm.getAttribute('data-time')));
+    if (j) elm.textContent = Math.max(0, j.time).toFixed(1) + 's';
+  });
+}
+
+function onForgeClick(e: MouseEvent) {
+  if (!forgeState) return;
+  const t = (e.target as HTMLElement).closest<HTMLElement>('[data-action]');
+  if (!t || t.classList.contains('is-disabled')) return;
+  const action = t.getAttribute('data-action');
+  const id = t.getAttribute('data-id');
+  if (action === 'smelt' && id) forgeState.api.smelt(Number(id));
+  else if (action === 'hammer' && id) forgeState.api.hammer(Number(id));
+  else if (action === 'hammerup') forgeState.api.raiseHammer();
+  else if (action === 'temp') forgeState.api.raiseTemp();
+  renderForge();
 }
 
 export function openForge(
   player: Player,
   MATERIALS: Material[],
   BAR_MAP: Record<MaterialId, MaterialId>,
-  queueSmelt: (oreId: MaterialId) => void,
+  api: ForgeApi,
 ) {
-  renderForge(player, MATERIALS, BAR_MAP, queueSmelt);
+  forgeState = { player, MATERIALS, BAR_MAP, api };
+  // Delegate on the stable parent once — survives child rebuilds so clicks land.
+  if (!forgeDelegated) { forgeBody.onclick = onForgeClick; forgeDelegated = true; }
+  renderForge();
   openModal(forgeModal);
 }
 
@@ -285,18 +376,18 @@ export function renderWarehouse(
 ) {
   warehousePlayerInv.innerHTML = player.inventory.map(it => {
     const m = MATERIALS[it.id];
-    return `<div class='flex items-center justify-between gap-3 rounded-xl border border-slate-700 p-2'>
+    return `<div class='list-row list-row--sm'>
       <div>${m.name} x${it.qty}</div>
-      <button data-id='${it.id}' class='store px-2 py-1 rounded-md border border-slate-600'>Store</button>
+      <button data-id='${it.id}' class='store btn btn-sm'>Store</button>
     </div>`;
-  }).join('') || '<div class="text-xs text-slate-400">(empty)</div>';
+  }).join('') || '<div class="text-xs muted">(empty)</div>';
   warehouseInv.innerHTML = player.warehouse.map(it => {
     const m = MATERIALS[it.id];
-    return `<div class='flex items-center justify-between gap-3 rounded-xl border border-slate-700 p-2'>
+    return `<div class='list-row list-row--sm'>
       <div>${m.name} x${it.qty}</div>
-      <button data-id='${it.id}' class='take px-2 py-1 rounded-md border border-slate-600'>Take</button>
+      <button data-id='${it.id}' class='take btn btn-sm'>Take</button>
     </div>`;
-  }).join('') || '<div class="text-xs text-slate-400">(empty)</div>';
+  }).join('') || '<div class="text-xs muted">(empty)</div>';
   warehousePlayerInv.querySelectorAll<HTMLElement>('button.store').forEach(btn => {
     btn.onclick = () => { store(Number(btn.getAttribute('data-id'))); renderWarehouse(player, MATERIALS, store, take); };
   });

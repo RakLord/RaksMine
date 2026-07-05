@@ -4,7 +4,7 @@ import {world, generateWorld} from './world';
 import {say} from './ui';
 import {awardRandomPage} from './pages';
 import {applyAscensionUpgrades} from './ascension';
-import type {Player, Building, Upgrade, BuildingCost, MaterialId} from './types';
+import type {Player, Building, Upgrade, BuildingCost, MaterialId, ForgeJob, ForgeStatus} from './types';
 
 export const SPAWN_X = TILE * 10;
 
@@ -35,6 +35,8 @@ const BASE_PLAYER: Player = {
   mineUp: false,
   buildingProgress: {},
   forgeLevel: 0,
+  forgeTemp: 0,
+  forgeHammer: 0,
   forgeQueue: [],
   warehouse: []
 };
@@ -129,17 +131,44 @@ export function sellAll() {
   say(`Sold for $${gained}`);
 }
 
+// ---- Forge tuning ----------------------------------------------------------
+export const SMELT_TIME = 60;          // base seconds per 10-ore -> 1-bar job
+export const MAX_FORGE_LEVEL = 4;      // Builder stops offering upgrades past this
+const HAMMER_UNLOCK_LEVEL = 2;        // forge level that unlocks the click-power upgrade
+const TEMP_UNLOCK_LEVEL = 3;          // forge level that unlocks the Temperature upgrade
+const PARALLEL_LEVEL = 4;             // forge level that makes every ore column smelt at once
+export const HAMMER_MAX = 10;          // click-power level cap; at max one click = instant
+const HAMMER_BASE_PCT = 0.01;        // per-click reduction (fraction of bar) before any upgrade
+const HAMMER_BASE_COST = 1500;       // cash cost of the first click-power level
+const HAMMER_COST_SCALE = 1.7;       // per-level cost multiplier
+const TEMP_STEP = 0.1;               // smelt-time reduction per temperature level
+const TEMP_CAP = 0.8;                // max total temperature reduction (80%)
+const TEMP_BASE_COST = 2500;         // cash cost of the first temperature level
+const TEMP_COST_SCALE = 1.6;         // per-level cost multiplier
+
 export const BUILDING_COSTS: Record<string, BuildingCost> = {
   forge: { materials: { 5: 50, 3: 50 }, cash: 5000 },
   warehouse: { materials: { [BAR_MAP[5]]: 50, 3: 100 }, cash: 0 },
-  forgeUpgrade: {
-    materials: { [BAR_MAP[5]]: 3, [BAR_MAP[4]]: 5, [BAR_MAP[6]]: 1 },
-    cash: 10000
-  }
 };
 
+// Forge Upgrade cost scales with the tier being bought (null once maxed out).
+export function forgeUpgradeCost(targetLevel: number): BuildingCost | null {
+  if (targetLevel > MAX_FORGE_LEVEL) return null;
+  const mult = 1 + (targetLevel - 2) * 0.5; // L2 x1, L3 x1.5, L4 x2
+  const base: Record<string, number> = { [BAR_MAP[5]]: 3, [BAR_MAP[4]]: 5, [BAR_MAP[6]]: 1 };
+  const materials: Record<string, number> = {};
+  for (const [k, v] of Object.entries(base)) materials[k] = Math.ceil(v * mult);
+  return { materials, cash: Math.round(10000 * mult) };
+}
+
+// Cost for a Builder line, resolving the dynamic forge-upgrade tier. null = not offered.
+export function buildingCost(kind: string): BuildingCost | null {
+  if (kind === 'forgeUpgrade') return forgeUpgradeCost(player.forgeLevel + 1);
+  return BUILDING_COSTS[kind] ?? null;
+}
+
 export function contributeBuilding(kind: string) {
-  const cost = BUILDING_COSTS[kind];
+  const cost = buildingCost(kind);
   if (!cost) return;
   const prog = player.buildingProgress[kind] || { materials: {}, cash: 0 };
   const cashNeed = (cost.cash || 0) - prog.cash;
@@ -168,14 +197,90 @@ export function contributeBuilding(kind: string) {
   }
 }
 
+function tempReduction() {
+  return Math.min(player.forgeTemp * TEMP_STEP, TEMP_CAP);
+}
+
 export function queueSmelt(oreId: MaterialId) {
   const barId = BAR_MAP[oreId];
   if (barId === undefined) { say('Cannot smelt that.'); return; }
   const taken = removeFromInventory(oreId, 10);
   if (taken < 10) { if (taken > 0) invAdd(oreId, taken); say('Need 10 ore.'); return; }
-  const time = 10 / Math.pow(2, Math.max(player.forgeLevel - 1, 0));
+  const time = SMELT_TIME * (1 - tempReduction());
   player.forgeQueue.push({ id: oreId, time, total: time });
   say('Smelting started.');
+}
+
+// Jobs currently cooking: the queue head in single mode, or the front job of each
+// distinct ore once parallel smelting is unlocked. Shared by the tick, hammer, and UI.
+export function activeJobs(): ForgeJob[] {
+  if (player.forgeQueue.length === 0) return [];
+  if (player.forgeLevel >= PARALLEL_LEVEL) {
+    const seen = new Set<MaterialId>();
+    const out: ForgeJob[] = [];
+    for (const j of player.forgeQueue) {
+      if (!seen.has(j.id)) { seen.add(j.id); out.push(j); }
+    }
+    return out;
+  }
+  return [player.forgeQueue[0]];
+}
+
+// Per-click reduction as a fraction of the bar's (dynamic) total smelt time. Linear
+// from a 1% base up to 100% at the level cap — where one click finishes any bar.
+function hammerFraction() {
+  return HAMMER_BASE_PCT + (1 - HAMMER_BASE_PCT) * (player.forgeHammer / HAMMER_MAX);
+}
+
+// Manual speed-up: shave a % of the bar off the active job of one ore column. No-op if
+// that column has nothing cooking (e.g. a waiting column in single-queue mode).
+export function hammerSmelt(oreId: MaterialId) {
+  const job = activeJobs().find(j => j.id === oreId);
+  if (!job) return;
+  job.time -= hammerFraction() * job.total;
+  if (job.time < 0.0001) job.time = 0.0001; // let the next tick finish it cleanly
+}
+
+// Cash-bought click-power upgrade, unlocked at forge level 2.
+export function raiseHammer() {
+  if (player.forgeLevel < HAMMER_UNLOCK_LEVEL) { say('Requires forge level ' + HAMMER_UNLOCK_LEVEL + '.'); return; }
+  if (player.forgeHammer >= HAMMER_MAX) { say('Click power maxed.'); return; }
+  const cost = Math.round(HAMMER_BASE_COST * Math.pow(HAMMER_COST_SCALE, player.forgeHammer));
+  if (player.cash < cost) { say('Not enough cash.'); return; }
+  player.cash -= cost;
+  player.forgeHammer++;
+  say('Click power raised.');
+}
+
+export function raiseTemperature() {
+  if (player.forgeLevel < TEMP_UNLOCK_LEVEL) { say('Requires forge level ' + TEMP_UNLOCK_LEVEL + '.'); return; }
+  const cost = Math.round(TEMP_BASE_COST * Math.pow(TEMP_COST_SCALE, player.forgeTemp));
+  if (player.cash < cost) { say('Not enough cash.'); return; }
+  player.cash -= cost;
+  player.forgeTemp++;
+  say('Forge temperature raised.');
+}
+
+export function forgeStatus(): ForgeStatus {
+  const tempNextCost = Math.round(TEMP_BASE_COST * Math.pow(TEMP_COST_SCALE, player.forgeTemp));
+  const hammerMaxed = player.forgeHammer >= HAMMER_MAX;
+  const hammerNextCost = Math.round(HAMMER_BASE_COST * Math.pow(HAMMER_COST_SCALE, player.forgeHammer));
+  return {
+    level: player.forgeLevel,
+    hammerLevel: player.forgeHammer,
+    hammerMax: HAMMER_MAX,
+    hammerUnlocked: player.forgeLevel >= HAMMER_UNLOCK_LEVEL,
+    hammerPct: Math.round(hammerFraction() * 100),
+    hammerMaxed,
+    hammerNextCost,
+    hammerCanAfford: player.cash >= hammerNextCost,
+    tempLevel: player.forgeTemp,
+    tempUnlocked: player.forgeLevel >= TEMP_UNLOCK_LEVEL,
+    tempReductionPct: Math.round(tempReduction() * 100),
+    tempNextCost,
+    tempCanAfford: player.cash >= tempNextCost,
+    parallelUnlocked: player.forgeLevel >= PARALLEL_LEVEL,
+  };
 }
 
 export function storeInWarehouse(id: MaterialId) {

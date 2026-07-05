@@ -3,183 +3,200 @@
 <head>
 <meta charset="UTF-8" />
 <meta name="viewport" content="width=device-width, initial-scale=1" />
-<title>2D Mining Game — Inventory + Keymap Update</title>
-<script src="https://cdn.tailwindcss.com"></script>
-<style>
-  html,body{margin:0;padding:0;background:#0b0d12;color:#e5e7eb;font:14px/1.3 system-ui}
-  #ui{position:fixed;top:8px;left:8px;right:8px;display:flex;gap:8px;align-items:center;z-index:10}
-  .panel{background:#111827;border:1px solid #1f2937;border-radius:8px;padding:8px 10px;box-shadow:0 2px 8px rgba(0,0,0,.35)}
-  #game{display:block;width:100vw;height:100vh;image-rendering:pixelated}
-  .enchant{font-family:monospace}
-</style>
+<title>RaksMine</title>
+<link rel="stylesheet" href="./styles.css" />
 </head>
 <body>
+  <!-- top-center transparent metrics pill -->
+  <div class="hud-pill" id="stats"></div>
+
+  <!-- top-right toolbar -->
   <div id="ui">
-    <div class="panel" id="stats"></div>
-    <button id="saveBtn" class="panel">Save</button>
-    <button id="loadBtn" class="panel">Load</button>
-    <input id="loadInput" type="file" accept=".txt" class="hidden" />
     <button id="pagesBtn" class="panel">Pages</button>
-    <button id="settingsBtn" class="panel ml-auto">Settings</button>
+    <button id="settingsBtn" class="icon-btn" title="Settings" aria-label="Settings">
+      <svg viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+        <circle cx="12" cy="12" r="3"></circle>
+        <path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 1 1-2.83 2.83l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-4 0v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 1 1-2.83-2.83l.06-.06a1.65 1.65 0 0 0 .33-1.82 1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1 0-4h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 1 1 2.83-2.83l.06.06a1.65 1.65 0 0 0 1.82.33H9a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 4 0v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 1 1 2.83 2.83l-.06.06a1.65 1.65 0 0 0-.33 1.82V9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 0 4h-.09a1.65 1.65 0 0 0-1.51 1z"></path>
+      </svg>
+    </button>
   </div>
-  <div class="fixed left-2 top-1/2 -translate-y-1/2 flex gap-2 pointer-events-none">
-    <div id="staminaBar" class="relative w-8 h-48 bg-slate-800 border border-slate-600 overflow-hidden">
-      <div id="staminaFill" class="absolute bottom-0 left-0 w-full bg-green-500"></div>
+
+  <!-- stamina / weight bars -->
+  <div id="bars">
+    <div class="stat-bar" id="staminaBar">
+      <div class="stat-bar__fill" id="staminaFill"></div>
+      <span class="stat-bar__label">STA</span>
     </div>
-    <div id="weightBar" class="relative w-8 h-48 bg-slate-800 border border-slate-600 overflow-hidden">
-      <div id="weightFill" class="absolute bottom-0 left-0 w-full bg-green-500"></div>
+    <div class="stat-bar" id="weightBar">
+      <div class="stat-bar__fill" id="weightFill"></div>
+      <span class="stat-bar__label">WGT</span>
     </div>
   </div>
+
   <canvas id="game" width="1280" height="720"></canvas>
-  <div id="toasts" class="fixed z-30 space-y-2 pointer-events-none"></div>
+
+  <!-- transient notifications (bottom-right by default) -->
+  <div id="toasts"></div>
+
+  <!-- new-player guidance -->
+  <div id="interactPrompt" class="interact-prompt hidden"></div>
+  <div id="controlsHint" class="controls-hint"></div>
 
   <!-- Shop modal -->
-  <div id="shopModal" class="hidden fixed inset-0 z-20 flex items-center justify-center bg-black/50">
-    <div class="bg-slate-900 border border-slate-700 rounded-2xl shadow-xl w-[480px] max-w-[92vw]">
-      <div class="flex items-center justify-between px-4 py-3 border-b border-slate-700">
-        <h3 class="text-base font-semibold">Surface Shop</h3>
-        <button id="shopClose" class="px-2 py-1 text-sm rounded-md border border-slate-700 hover:bg-slate-800">Close</button>
+  <div id="shopModal" class="modal-overlay hidden">
+    <div class="modal-card">
+      <div class="modal-header">
+        <h3>Surface Shop</h3>
+        <button id="shopClose" class="btn btn-sm">Close</button>
       </div>
-      <div class="p-4 space-y-3 text-sm" id="shopBody"></div>
+      <div class="modal-body" id="shopBody"></div>
     </div>
   </div>
 
   <!-- Inventory modal -->
-  <div id="invModal" class="hidden fixed inset-0 z-20 flex items-center justify-center bg-black/50">
-    <div class="bg-slate-900 border border-slate-700 rounded-2xl shadow-xl w-[480px] max-w-[92vw]">
-      <div class="flex items-center justify-between px-4 py-3 border-b border-slate-700">
-        <h3 class="text-base font-semibold">Inventory</h3>
-        <button id="invClose" class="px-2 py-1 text-sm rounded-md border border-slate-700 hover:bg-slate-800">Close</button>
+  <div id="invModal" class="modal-overlay hidden">
+    <div class="modal-card">
+      <div class="modal-header">
+        <h3>Inventory</h3>
+        <button id="invClose" class="btn btn-sm">Close</button>
       </div>
-      <div class="p-4">
-        <div class="grid grid-cols-4 gap-2 text-sm" id="invGrid"></div>
-        <div class="mt-3 text-sm" id="invTotal"></div>
+      <div class="modal-body">
+        <div class="grid-4" id="invGrid"></div>
+        <div id="invTotal"></div>
       </div>
     </div>
   </div>
 
   <!-- Market modal -->
-  <div id="marketModal" class="hidden fixed inset-0 z-20 flex items-center justify-center bg-black/50">
-    <div class="bg-slate-900 border border-slate-700 rounded-2xl shadow-xl w-[480px] max-w-[92vw]">
-      <div class="flex items-center justify-between px-4 py-3 border-b border-slate-700">
-        <h3 class="text-base font-semibold">Market</h3>
-        <button id="marketClose" class="px-2 py-1 text-sm rounded-md border border-slate-700 hover:bg-slate-800">Close</button>
+  <div id="marketModal" class="modal-overlay hidden">
+    <div class="modal-card">
+      <div class="modal-header">
+        <h3>Market</h3>
+        <button id="marketClose" class="btn btn-sm">Close</button>
       </div>
-      <div class="p-4 space-y-3 text-sm">
-        <div class="flex items-center justify-between mb-2">
-          <div>Total Value: <span id="marketTotal">$0</span></div>
-          <button id="marketSellAll" class="px-3 py-1 rounded-md border border-slate-600">Sell All</button>
+      <div class="modal-body">
+        <div class="row-between">
+          <div>Total Value: <span id="marketTotal" class="accent">$0</span></div>
+          <button id="marketSellAll" class="btn btn-primary">Sell All</button>
         </div>
-        <div class="space-y-3" id="marketBody"></div>
+        <div class="col" id="marketBody"></div>
       </div>
     </div>
   </div>
 
   <!-- Builder modal -->
-  <div id="builderModal" class="hidden fixed inset-0 z-20 flex items-center justify-center bg-black/50">
-    <div class="bg-slate-900 border border-slate-700 rounded-2xl shadow-xl w-[480px] max-w-[92vw]">
-      <div class="flex items-center justify-between px-4 py-3 border-b border-slate-700">
-        <h3 class="text-base font-semibold">Builder</h3>
-        <button id="builderClose" class="px-2 py-1 text-sm rounded-md border border-slate-700 hover:bg-slate-800">Close</button>
+  <div id="builderModal" class="modal-overlay hidden">
+    <div class="modal-card">
+      <div class="modal-header">
+        <h3>Builder</h3>
+        <button id="builderClose" class="btn btn-sm">Close</button>
       </div>
-      <div class="p-4 space-y-3 text-sm" id="builderBody"></div>
+      <div class="modal-body" id="builderBody"></div>
     </div>
   </div>
 
   <!-- Forge modal -->
-  <div id="forgeModal" class="hidden fixed inset-0 z-20 flex items-center justify-center bg-black/50">
-    <div class="bg-slate-900 border border-slate-700 rounded-2xl shadow-xl w-[480px] max-w-[92vw]">
-      <div class="flex items-center justify-between px-4 py-3 border-b border-slate-700">
-        <h3 class="text-base font-semibold">Forge</h3>
-        <button id="forgeClose" class="px-2 py-1 text-sm rounded-md border border-slate-700 hover:bg-slate-800">Close</button>
+  <div id="forgeModal" class="modal-overlay hidden">
+    <div class="modal-card">
+      <div class="modal-header">
+        <h3>Forge</h3>
+        <button id="forgeClose" class="btn btn-sm">Close</button>
       </div>
-      <div class="p-4 space-y-3 text-sm" id="forgeBody"></div>
+      <div class="modal-body" id="forgeBody"></div>
     </div>
   </div>
 
   <!-- Warehouse modal -->
-  <div id="warehouseModal" class="hidden fixed inset-0 z-20 flex items-center justify-center bg-black/50">
-    <div class="bg-slate-900 border border-slate-700 rounded-2xl shadow-xl w-[480px] max-w-[92vw]">
-      <div class="flex items-center justify-between px-4 py-3 border-b border-slate-700">
-        <h3 class="text-base font-semibold">Warehouse</h3>
-        <button id="warehouseClose" class="px-2 py-1 text-sm rounded-md border border-slate-700 hover:bg-slate-800">Close</button>
+  <div id="warehouseModal" class="modal-overlay hidden">
+    <div class="modal-card">
+      <div class="modal-header">
+        <h3>Warehouse</h3>
+        <button id="warehouseClose" class="btn btn-sm">Close</button>
       </div>
-      <div class="p-4 space-y-4 text-sm">
+      <div class="modal-body">
         <div>
-          <h4 class="font-medium mb-1">Player Inventory</h4>
-          <div id="warehousePlayerInv" class="space-y-2"></div>
+          <h4>Player Inventory</h4>
+          <div id="warehousePlayerInv" class="col"></div>
         </div>
         <div>
-          <h4 class="font-medium mb-1">Warehouse Storage</h4>
-          <div id="warehouseInv" class="space-y-2"></div>
+          <h4>Warehouse Storage</h4>
+          <div id="warehouseInv" class="col"></div>
         </div>
       </div>
     </div>
   </div>
 
   <!-- Ascension modal -->
-  <div id="ascendModal" class="hidden fixed inset-0 z-20 flex items-center justify-center bg-black/50">
-    <div class="bg-slate-900 border border-slate-700 rounded-2xl shadow-xl w-[360px] max-w-[92vw]">
-      <div class="flex items-center justify-between px-4 py-3 border-b border-slate-700">
-        <h3 class="text-base font-semibold">Ascension</h3>
-        <button id="ascendClose" class="px-2 py-1 text-sm rounded-md border border-slate-700 hover:bg-slate-800">Close</button>
+  <div id="ascendModal" class="modal-overlay hidden">
+    <div class="modal-card modal-sm">
+      <div class="modal-header">
+        <h3>Ascension</h3>
+        <button id="ascendClose" class="btn btn-sm">Close</button>
       </div>
-        <div class="p-4 space-y-3 text-sm">
-          <p>Reset the world for new opportunities. Cost: $<span id="ascendCostText"></span>. If you can't afford it, you may ascend for no gain.</p>
-          <button id="ascendBtn" class="px-3 py-1.5 rounded-md border border-slate-600 w-full">Ascend</button>
-          <button id="ascShopBtn" class="px-3 py-1.5 rounded-md border border-slate-600 w-full">Ascension Shop</button>
-        </div>
+      <div class="modal-body">
+        <p>Reset the world for new opportunities. Cost: $<span id="ascendCostText" class="accent"></span>. If you can't afford it, you may ascend for no gain.</p>
+        <button id="ascendBtn" class="btn btn-primary btn-block">Ascend</button>
+        <button id="ascShopBtn" class="btn btn-block">Ascension Shop</button>
       </div>
     </div>
+  </div>
 
   <!-- Ascension shop modal -->
-  <div id="ascShopModal" class="hidden fixed inset-0 z-20 flex items-center justify-center bg-black/50">
-    <div class="bg-slate-900 border border-slate-700 rounded-2xl shadow-xl w-[500px] max-w-[92vw]">
-      <div class="flex items-center justify-between px-4 py-3 border-b border-slate-700">
-        <h3 class="text-base font-semibold">Ascension Upgrades</h3>
-        <button id="ascShopClose" class="px-2 py-1 text-sm rounded-md border border-slate-700 hover:bg-slate-800">Close</button>
+  <div id="ascShopModal" class="modal-overlay hidden">
+    <div class="modal-card modal-lg">
+      <div class="modal-header">
+        <h3>Ascension Upgrades</h3>
+        <button id="ascShopClose" class="btn btn-sm">Close</button>
       </div>
-      <div id="ascShopBody" class="p-4 text-sm"></div>
+      <div id="ascShopBody" class="modal-body"></div>
     </div>
   </div>
 
   <!-- Pages modal -->
-  <div id="pagesModal" class="hidden fixed inset-0 z-20 flex items-center justify-center bg-black/50">
-    <div class="bg-slate-900 border border-slate-700 rounded-2xl shadow-xl w-[500px] max-w-[92vw]">
-      <div class="flex items-center justify-between px-4 py-3 border-b border-slate-700">
-        <h3 class="text-base font-semibold">Pages</h3>
-        <button id="pagesClose" class="px-2 py-1 text-sm rounded-md border border-slate-700 hover:bg-slate-800">Close</button>
+  <div id="pagesModal" class="modal-overlay hidden">
+    <div class="modal-card modal-lg">
+      <div class="modal-header">
+        <h3>Pages</h3>
+        <button id="pagesClose" class="btn btn-sm">Close</button>
       </div>
-      <div id="pagesBody" class="p-4 text-sm"></div>
+      <div id="pagesBody" class="modal-body"></div>
     </div>
   </div>
 
   <!-- Settings modal -->
-  <div id="settingsModal" class="hidden fixed inset-0 z-20 flex items-center justify-center bg-black/50">
-    <div class="bg-slate-900 border border-slate-700 rounded-2xl shadow-xl w-[400px] max-w-[92vw]">
-      <div class="flex items-center justify-between px-4 py-3 border-b border-slate-700">
-        <h3 class="text-base font-semibold">Settings</h3>
-        <button id="settingsClose" class="px-2 py-1 text-sm rounded-md border border-slate-700 hover:bg-slate-800">Close</button>
+  <div id="settingsModal" class="modal-overlay hidden">
+    <div class="modal-card">
+      <div class="modal-header">
+        <h3>Settings</h3>
+        <button id="settingsClose" class="btn btn-sm">Close</button>
       </div>
-      <div class="p-4 space-y-4 text-sm">
+      <div class="modal-body">
+        <div>
+          <h4>Save Data</h4>
+          <div class="row">
+            <button id="saveBtn" class="btn">Save to File</button>
+            <button id="loadBtn" class="btn">Load from File</button>
+            <input id="loadInput" type="file" accept=".txt" class="hidden" />
+          </div>
+        </div>
         <div>
           <label for="autosaveRange" class="font-medium">Autosave Interval: <span id="autosaveLabel"></span></label>
-          <input id="autosaveRange" type="range" min="10" max="300" step="10" class="w-full">
+          <input id="autosaveRange" type="range" min="10" max="300" step="10">
         </div>
         <div>
-          <label for="toastXInput" class="font-medium">Notification X Position</label>
-          <input id="toastXInput" type="number" class="w-full">
+          <label for="toastXInput" class="font-medium">Notification Offset (from right)</label>
+          <input id="toastXInput" type="number">
         </div>
         <div>
-          <label for="toastYInput" class="font-medium">Notification Y Position</label>
-          <input id="toastYInput" type="number" class="w-full">
+          <label for="toastYInput" class="font-medium">Notification Offset (from bottom)</label>
+          <input id="toastYInput" type="number">
         </div>
         <div>
-          <h4 class="font-medium mb-1">Key Bindings</h4>
-          <div id="keybindsTable" class="grid grid-cols-2 gap-2"></div>
+          <h4>Key Bindings</h4>
+          <div id="keybindsTable" class="grid-2"></div>
         </div>
         <div>
-          <button id="hardResetBtn" class="px-3 py-1.5 rounded-md border border-red-600 text-red-400 w-full">Hard Reset</button>
+          <button id="hardResetBtn" class="btn btn-danger btn-block">Hard Reset</button>
         </div>
       </div>
     </div>

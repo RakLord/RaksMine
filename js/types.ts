@@ -43,6 +43,24 @@ export interface ForgeJob {
   total: number;
 }
 
+// Display payload for the forge modal — computed in player.ts, consumed by ui.ts.
+export interface ForgeStatus {
+  level: number;
+  hammerLevel: number;       // click-power upgrade level (0..max)
+  hammerMax: number;         // click-power level cap
+  hammerUnlocked: boolean;   // forge level >= click-power unlock tier
+  hammerPct: number;         // current per-click reduction, % of the bar (1..100)
+  hammerMaxed: boolean;      // click power at max (one click = instant smelt)
+  hammerNextCost: number;    // cash cost of the next click-power level
+  hammerCanAfford: boolean;
+  tempLevel: number;
+  tempUnlocked: boolean;     // forge level >= temperature unlock tier
+  tempReductionPct: number;  // current smelt-time reduction from temperature, 0..80
+  tempNextCost: number;      // cash cost of the next temperature level
+  tempCanAfford: boolean;
+  parallelUnlocked: boolean; // every ore column smelts at once
+}
+
 export interface BuildingProgress {
   materials: Record<string, number>;
   cash: number;
@@ -118,6 +136,8 @@ export interface Player {
   mineUp: boolean;
   buildingProgress: Record<string, BuildingProgress>;
   forgeLevel: number;
+  forgeTemp: number;
+  forgeHammer: number;
   forgeQueue: ForgeJob[];
   warehouse: InventoryItem[];
 }
